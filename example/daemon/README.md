@@ -16,3 +16,5 @@ And monitors its SMS inbox and balance.
 ```
 
 It also spawns a web interface available at `http://localhost:%d`.
+
+[Screenshot](http://cl.ly/XPuS/Image%202014-09-07%20at%207.51.48%20pm.png)
