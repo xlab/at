@@ -515,9 +515,7 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	//if oaLen > 12 {
 	if oaLen > 13 {
-		return 0, errors.New("oaLen > 12")
 		return n, ErrIncorrectSize
 	}
 	buf.UnreadByte() // will read length again
