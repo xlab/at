@@ -99,11 +99,19 @@ func (p *PhoneNumber) ReadFrom(octets []byte) {
 		return
 	}
 	addrType := octets[0]
+	if addrType == 0xd0 {
+		out, err := pdu.Decode7Bit(octets[1:])
+		if err != nil {
+			return
+		}
+		*p = PhoneNumber(out)
+	} else {
 	addr := pdu.DecodeSemiAddress(octets[1:])
 	if addrType&0x10 > 0 {
 		*p = PhoneNumber("+" + addr)
 	} else {
 		*p = PhoneNumber(addr)
+	}
 	}
 	return
 }
@@ -507,7 +515,9 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	if oaLen > 12 {
+	//if oaLen > 12 {
+	if oaLen > 13 {
+		return 0, errors.New("oaLen > 12")
 		return n, ErrIncorrectSize
 	}
 	buf.UnreadByte() // will read length again
