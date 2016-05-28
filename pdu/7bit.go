@@ -46,8 +46,8 @@ func Encode7Bit(str string) []byte {
 }
 
 // Decode7Bit decodes the given GSM 7-bit packed octet data (3GPP TS 23.038) into a UTF-8 encoded string.
-func Decode7Bit(octets []byte) (str string, err error) {
-	raw7 := unpack7Bit(octets)
+func Decode7Bit(octets []byte, padding byte) (str string, err error) {
+	raw7 := unpack7Bit(octets, padding)
 	var escaped bool
 	var r rune
 	for _, b := range raw7 {
@@ -115,10 +115,10 @@ func pack7Bit(raw7 []byte) []byte {
 	return pack7
 }
 
-func unpack7Bit(pack7 []byte) []byte {
+func unpack7Bit(pack7 []byte, paddingBits uint8) []byte {
 	raw7 := make([]byte, 0, len(pack7))
-	var sep byte  // current septet
-	var bit uint8 // current bit in septet
+	var sep byte                // current septet
+	var bit uint8 = paddingBits // current bit in septet
 	for _, oct := range pack7 {
 		for i := uint8(0); i < 8; i++ {
 			sep |= oct >> i & 1 << bit
@@ -129,6 +129,9 @@ func unpack7Bit(pack7 []byte) []byte {
 				bit = 0
 			}
 		}
+	}
+	if paddingBits > 0 {
+		raw7 = raw7[1:]
 	}
 	if bytes.HasSuffix(raw7, crcr) || bytes.HasSuffix(raw7, cr) {
 		raw7 = raw7[:len(raw7)-1]

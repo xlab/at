@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xlab/at/pdu"
+	"github.com/stas2k/at/pdu"
 )
 
 // Common errors.
@@ -100,18 +100,18 @@ func (p *PhoneNumber) ReadFrom(octets []byte) {
 	}
 	addrType := octets[0]
 	if addrType == 0xd0 {
-		out, err := pdu.Decode7Bit(octets[1:])
+		out, err := pdu.Decode7Bit(octets[1:], 0)
 		if err != nil {
 			return
 		}
 		*p = PhoneNumber(out)
 	} else {
-	addr := pdu.DecodeSemiAddress(octets[1:])
-	if addrType&0x10 > 0 {
-		*p = PhoneNumber("+" + addr)
-	} else {
-		*p = PhoneNumber(addr)
-	}
+		addr := pdu.DecodeSemiAddress(octets[1:])
+		if addrType&0x10 > 0 {
+			*p = PhoneNumber("+" + addr)
+		} else {
+			*p = PhoneNumber(addr)
+		}
 	}
 	return
 }
@@ -374,13 +374,29 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 		s.LoopPrevention = sms.LoopPrevention
 		s.ReplyPathExists = sms.ReplyPath
 		s.UserDataStartsWithHeader = sms.UserDataHeaderIndicator
+		if sms.UserDataHeaderIndicator {
+			ieType := sms.UserDataHeader[0]
+			ieLen := sms.UserDataHeader[1]
+			ie := sms.UserDataHeader[2 : ieLen+2]
+
+			if ieType == 0x00 {
+				id := ie[0]
+				total := ie[1]
+				num := ie[2]
+			}
+
+		}
 		s.StatusReportIndication = sms.StatusReportIndication
 		s.Address.ReadFrom(sms.OriginatingAddress[1:])
 		s.Encoding = Encoding(sms.DataCodingScheme)
 		s.ServiceCenterTime.ReadFrom(sms.ServiceCentreTimestamp)
 		switch s.Encoding {
 		case Encodings.Gsm7Bit:
-			s.Text, err = pdu.Decode7Bit(sms.UserData)
+			var paddingBits uint8
+			if s.UserDataStartsWithHeader {
+				paddingBits = ((sms.UserDataHeaderLength + 1) * 8) % 7
+			}
+			s.Text, err = pdu.Decode7Bit(sms.UserData, paddingBits)
 			if err != nil {
 				return
 			}
@@ -421,7 +437,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 
 		switch s.Encoding {
 		case Encodings.Gsm7Bit:
-			s.Text, err = pdu.Decode7Bit(sms.UserData)
+			s.Text, err = pdu.Decode7Bit(sms.UserData, 0)
 			if err != nil {
 				return
 			}
@@ -456,6 +472,8 @@ type smsDeliver struct {
 	ServiceCentreTimestamp []byte
 	UserDataLength         byte
 	UserData               []byte
+	UserDataHeaderLength   byte
+	UserDataHeader         []byte
 }
 
 func (s *smsDeliver) Bytes() []byte {
@@ -504,10 +522,10 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	if header>>4&0x01 == 0x01 {
 		s.StatusReportIndication = true
 	}
-	if header>>5&0x01 == 0x01 {
+	if header>>6&0x01 == 0x01 {
 		s.UserDataHeaderIndicator = true
 	}
-	if header>>6&0x01 == 0x01 {
+	if header>>7&0x01 == 0x01 {
 		s.ReplyPath = true
 	}
 	oaLen, err := buf.ReadByte()
@@ -546,6 +564,22 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	n++
 	if err != nil {
 		return
+	}
+	if s.UserDataHeaderIndicator == true {
+		s.UserDataHeaderLength, err = buf.ReadByte()
+		n++
+		if err != nil {
+			return
+		}
+
+		s.UserDataHeader = make([]byte, int(s.UserDataHeaderLength))
+		off, err = io.ReadFull(buf, s.UserDataHeader)
+		n += off
+		if err != nil {
+			return
+		}
+		s.UserDataHeader = s.UserDataHeader[:off]
+		s.UserDataLength = s.UserDataLength - s.UserDataHeaderLength - 1
 	}
 	s.UserData = make([]byte, int(s.UserDataLength))
 	off, _ = io.ReadFull(buf, s.UserData)
