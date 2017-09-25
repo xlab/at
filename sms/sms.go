@@ -335,7 +335,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	if scLen > 12 {
+	if scLen > 16 {
 		return 0, ErrIncorrectSize
 	}
 	addr := make([]byte, scLen)
@@ -507,7 +507,7 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	if oaLen > 12 {
+	if oaLen > 16 {
 		return n, ErrIncorrectSize
 	}
 	buf.UnreadByte() // will read length again
@@ -625,7 +625,7 @@ func (s *smsSubmit) FromBytes(octets []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	if daLen > 12 {
+	if daLen > 16 {
 		return n, ErrIncorrectSize
 	}
 	buf.UnreadByte() // read length again
