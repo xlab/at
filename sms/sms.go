@@ -56,10 +56,11 @@ type Encoding byte
 
 // Encodings represent the possible encodings of message's text data.
 var Encodings = struct {
-	Gsm7Bit Encoding
-	UCS2    Encoding
+	Gsm7Bit   Encoding
+	UCS2      Encoding
+	Gsm7Bit_2 Encoding
 }{
-	0x00, 0x08,
+	0x00, 0x08, 0x11,
 }
 
 // PhoneNumber represents the address in either local or international format.
@@ -257,13 +258,14 @@ func (s *Message) PDU() (int, []byte, error) {
 		sms.ServiceCentreTimestamp = s.ServiceCenterTime.PDU()
 
 		var userData []byte
-		if s.Encoding == Encodings.Gsm7Bit {
+		switch s.Encoding {
+		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
 			userData = pdu.Encode7Bit(s.Text)
 			sms.UserDataLength = byte(len(s.Text))
-		} else if s.Encoding == Encodings.UCS2 {
+		case Encodings.UCS2:
 			userData = pdu.EncodeUcs2(s.Text)
 			sms.UserDataLength = byte(len(userData))
-		} else {
+		default:
 			return 0, nil, ErrUnknownEncoding
 		}
 
@@ -304,13 +306,14 @@ func (s *Message) PDU() (int, []byte, error) {
 		}
 
 		var userData []byte
-		if s.Encoding == Encodings.Gsm7Bit {
+		switch s.Encoding {
+		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
 			userData = pdu.Encode7Bit(s.Text)
 			sms.UserDataLength = byte(len(s.Text))
-		} else if s.Encoding == Encodings.UCS2 {
+		case Encodings.UCS2:
 			userData = pdu.EncodeUcs2(s.Text)
 			sms.UserDataLength = byte(len(userData))
-		} else {
+		default:
 			return 0, nil, ErrUnknownEncoding
 		}
 
@@ -371,7 +374,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 		s.Encoding = Encoding(sms.DataCodingScheme)
 		s.ServiceCenterTime.ReadFrom(sms.ServiceCentreTimestamp)
 		switch s.Encoding {
-		case Encodings.Gsm7Bit:
+		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
 			s.Text, err = pdu.Decode7Bit(sms.UserData)
 			if err != nil {
 				return
@@ -412,7 +415,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 		}
 
 		switch s.Encoding {
-		case Encodings.Gsm7Bit:
+		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
 			s.Text, err = pdu.Decode7Bit(sms.UserData)
 			if err != nil {
 				return
