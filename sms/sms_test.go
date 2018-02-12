@@ -19,15 +19,18 @@ var (
 		"003200200440043004370430002E0020041F043E0441043B04350434043D043804390020002D" +
 		"002000200032003600200438044E043D044F00200432002000320031003A00330035"
 
-	pduDeliverGsm7 = "07919762020033F1040B919762995696F0000041606291401561046379180E"
-	pduSubmitGsm7  = "07919762020033F111000B919762995696F00000AA046379180E"
+	pduDeliverGsm7   = "07919762020033F1040B919762995696F0000041606291401561046379180E"
+	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA046379180E"
+	pduDeliverGsm7_2 = "0791551010010201040D91551699296568F80011719022124215293DD4B71C5E26BF" +
+		"41D3E6145476D3E5E573BD0C82BF40B59A2D96CBE564351BCE8603A164319D8CA6ABD540E432482673C172AED82DE502"
 )
 
 var (
-	smsDeliverUCS2 Message
-	smsDeliverGsm7 Message
-	smsSubmitUCS2  Message
-	smsSubmitGsm7  Message
+	smsDeliverUCS2   Message
+	smsDeliverGsm7   Message
+	smsDeliverGsm7_2 Message
+	smsSubmitUCS2    Message
+	smsSubmitGsm7    Message
 )
 
 func init() {
@@ -49,6 +52,15 @@ func init() {
 		Address:              "+79269965690",
 		ServiceCenterAddress: "+79262000331",
 		ServiceCenterTime:    Timestamp(dateDeliverGsm7.In(time.Local)),
+	}
+	dateDeliverGsm7_2, _ := time.Parse(time.RFC3339, "2017-09-23T23:24:51+03:00")
+	smsDeliverGsm7_2 = Message{
+		Text:                 "Torpedo SMS entregue p/ 5561999256868 (21:24:55 de 22.09.17).",
+		Encoding:             Encodings.Gsm7Bit_2,
+		Type:                 MessageTypes.Deliver,
+		Address:              "+5561999256868",
+		ServiceCenterAddress: "+550101102010",
+		ServiceCenterTime:    Timestamp(dateDeliverGsm7_2.In(time.Local)),
 	}
 
 	smsSubmitUCS2 = Message{
@@ -89,6 +101,16 @@ func TestSmsDeliverReadFromGsm7(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsDeliverGsm7, msg)
+}
+
+func TestSmsDeliverReadFromGsm7_2(t *testing.T) {
+	var msg Message
+	data, err := util.Bytes(pduDeliverGsm7_2)
+	assert.NoError(t, err)
+	n, err := msg.ReadFrom(data)
+	assert.NoError(t, err)
+	assert.Equal(t, n, len(data))
+	assert.Equal(t, smsDeliverGsm7_2, msg)
 }
 
 func TestSmsDeliverPduUCS2(t *testing.T) {

@@ -222,7 +222,10 @@ func (d *Device) Send(req string) (reply string, err error) {
 
 // Watch starts a monitoring process that will wait for events
 // from the device's notification port.
-func (d *Device) Watch() {
+func (d *Device) Watch() error {
+	if d.notifyPort == nil {
+		return errors.New("at: notification port not initialized")
+	}
 	go func() {
 		<-d.closed
 		d.notifyPort.Write([]byte(KillCmd + Sep))
@@ -232,12 +235,12 @@ func (d *Device) Watch() {
 	for {
 		select {
 		case <-d.closed:
-			return
+			return nil
 		default:
 			line, err := buf.ReadString(byte('\r'))
 			if err != nil {
 				d.Close()
-				return
+				return nil
 			}
 			text := strings.TrimSpace(line)
 			if len(text) < 1 {
@@ -360,19 +363,19 @@ func (d *Device) handleReport(str string) (err error) {
 // Open is used to open serial ports of the device. This should be used first.
 // The method returns error if open was not succeed, i.e. if device is absent.
 func (d *Device) Open() (err error) {
-	cmdPortCfg := serial.Config{
+	if d.cmdPort, err = serial.OpenPort(&serial.Config{
 		Name: d.CommandPort,
 		Baud: BaudRate,
-	}
-	notifyPortCfg := serial.Config{
-		Name: d.NotifyPort,
-		Baud: BaudRate,
-	}
-	if d.cmdPort, err = serial.OpenPort(&cmdPortCfg); err != nil {
+	}); err != nil {
 		return
 	}
-	if d.notifyPort, err = serial.OpenPort(&notifyPortCfg); err != nil {
-		return
+	if len(d.NotifyPort) > 0 && d.NotifyPort != d.CommandPort {
+		if d.notifyPort, err = serial.OpenPort(&serial.Config{
+			Name: d.NotifyPort,
+			Baud: BaudRate,
+		}); err != nil {
+			return
+		}
 	}
 	return
 }
