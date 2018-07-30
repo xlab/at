@@ -269,7 +269,6 @@ func (s *Message) PDU() (int, []byte, error) {
 			return 0, nil, ErrUnknownEncoding
 		}
 
-		sms.UserDataLength = byte(len(userData))
 		sms.UserData = userData
 		n, err := buf.Write(sms.Bytes())
 		if err != nil {
