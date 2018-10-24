@@ -158,33 +158,46 @@ func (v *ValidityPeriod) ReadFrom(oct byte) {
 // Timestamp represents message's timestamp.
 type Timestamp time.Time
 
+// GSM 03.**
+// TP-Service-Centre-Time-Stamp (TP-SCTS)
+//
+//  |              | Year | Month | Day | Hour | Minute | Second | Time Zone |
+//  |--------------|------|-------|-----|------|--------|--------|-----------|
+//  |  Semi-octets |   2  |   2   |  2  |   2  |    2   |    2   |     2     |
+//
+//  The Time Zone indicates the difference, expressed in quarters of an hour, between the local time and
+//  GMT. In the first of the two semi-octets, the first bit (bit 3 of the seventh octet of the TP-Service-CentreTime-Stamp
+//  field) represents the algebraic sign of this difference (0 : positive, 1 : negative).
+
 // PDU returns bytes of semi-octet encoded timestamp.
 func (t Timestamp) PDU() []byte {
 	date := time.Time(t)
-	year := uint64(date.Year() - 2000)
-	month := uint64(date.Month())
-	day := uint64(date.Day())
-	hour := uint64(date.Hour())
-	minute := uint64(date.Minute())
-	second := uint64(date.Second())
-	_, offset := date.Zone()
-	quarters := uint64(offset / int(time.Hour/time.Second) * 4)
-	return pdu.EncodeSemi(year, month, day, hour, minute, second, quarters)
-}
+	year := date.Year()
+	month := date.Month()
+	day := date.Day()
+	hour := date.Hour()
+	minute := date.Minute()
+	second := date.Second()
 
-// ReadFrom reads a semi-encoded timestamp from the given octets.
-func (t *Timestamp) ReadFrom(octets []byte) {
-	blocks := pdu.DecodeSemi(octets)
-	date := time.Date(2000+blocks[0], time.Month(blocks[1]), blocks[2], blocks[3], blocks[4], blocks[5], 0, time.UTC)
-	diff := time.Duration(blocks[6]) * 15 * time.Minute
-	if blocks[6]>>3&0x01 == 1 { // bit 3 = GMT offset sgn
-		// was negative, so make UTC
-		date = date.Add(diff)
-	} else {
-		// was positive, so make UTC
-		date = date.Add(-diff)
+	_, offset := date.Zone()
+	negativeOffset := offset < 0
+	if negativeOffset {
+		offset = -offset
 	}
-	*t = Timestamp(date.In(time.Local))
+	quarters := offset / int(time.Hour/time.Second) * 4
+
+	_year := pdu.Swap(pdu.Encode((year % 1000)))
+	_month := pdu.Swap(pdu.Encode(int(month)))
+	_day := pdu.Swap(pdu.Encode(day))
+	_hour := pdu.Swap(pdu.Encode(hour))
+	_minute := pdu.Swap(pdu.Encode(minute))
+	_second := pdu.Swap(pdu.Encode(second))
+	_quarters := pdu.Swap(pdu.Encode(quarters))
+	if negativeOffset {
+		_quarters = _quarters | 0x08
+	}
+
+	return []byte{_year, _month, _day, _hour, _minute, _second, _quarters}
 }
 
 // Message represents an SMS message, including some advanced fields. This
