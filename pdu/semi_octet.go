@@ -2,6 +2,25 @@ package pdu
 
 import "fmt"
 
+// Swap semi-octets in octet
+func Swap(octet byte) byte {
+	return (octet << 4) | (octet >> 4 & 0x0F)
+}
+
+// Encode to semi-octets
+func Encode(value int) byte {
+	lo := byte(value % 10)
+	hi := byte((value % 100) / 10)
+	return hi<<4 | lo
+}
+
+// Decode form semi-octets
+func Decode(octet byte) int {
+	lo := octet & 0x0F
+	hi := octet >> 4 & 0x0F
+	return int(hi)*10 + int(lo)
+}
+
 // EncodeSemi packs the given numerical chunks in a semi-octet
 // representation as described in 3GPP TS 23.040.
 func EncodeSemi(chunks ...uint64) []byte {
