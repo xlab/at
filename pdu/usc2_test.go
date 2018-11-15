@@ -26,7 +26,7 @@ func TestEncodeUcs2(t *testing.T) {
 
 func TestDecodeUcs2(t *testing.T) {
 	oct := testOctetsUcs2
-	out, err := DecodeUcs2(oct)
+	out, err := DecodeUcs2(oct, false)
 	exp := testStringUcs2
 	assert.NoError(t, err)
 	assert.Equal(t, exp, out)

@@ -419,7 +419,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 			}
 			s.Text = cutStr(s.Text, int(sms.UserDataLength))
 		case Encodings.UCS2:
-			s.Text, err = pdu.DecodeUcs2(sms.UserData)
+			s.Text, err = pdu.DecodeUcs2(sms.UserData, s.UserDataStartsWithHeader)
 			if err != nil {
 				return
 			}
@@ -460,7 +460,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 			}
 			s.Text = cutStr(s.Text, int(sms.UserDataLength))
 		case Encodings.UCS2:
-			s.Text, err = pdu.DecodeUcs2(sms.UserData)
+			s.Text, err = pdu.DecodeUcs2(sms.UserData, s.UserDataStartsWithHeader)
 			if err != nil {
 				return
 			}
@@ -519,6 +519,25 @@ func (s *smsDeliver) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// GSM 03.**
+//The TP-User-Data-Header-Indicator is a 1 bit field within bit 6 of the first octet of an SMS-SUBMIT and
+//SMS-DELIVER PDU and has the following values.
+//Bit no. 6 0 The TP-UD field contains only the short message
+//1 The beginning of the TP-UD field contains a Header in addition to the
+//short message
+
+//The TP-Reply-Path is a 1-bit field, located within bit no 7 of the first octet of both SMS-DELIVER and
+//SMS-SUBMIT, and to be given the following values:
+//Bit no 7: 0 TP-Reply-Path parameter is not set in this SMS-SUBMIT/DELIVER
+//1 TP-Reply-Path parameter is set in this SMS-SUBMIT/DELIVER
+
+// TP-OA TP-Originating-Address  2-12 octets
+// Each address field of the SM-TL consists of the following sub-fields: An Address-Length field of one octet,
+// a Type-of-Address field of one octet, and one Address-Value field of variable length
+//
+// The Address-Length field is an integer representation of the number of useful semi-octets within the
+// Address-Value field, i.e. excludes any semi octet containing only fill bits.
+
 func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	buf := bytes.NewReader(octets)
 	*s = smsDeliver{}
@@ -537,19 +556,14 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	if header>>4&0x01 == 0x01 {
 		s.StatusReportIndication = true
 	}
-	if header>>5&0x01 == 0x01 {
-		s.UserDataHeaderIndicator = true
-	}
-	if header>>6&0x01 == 0x01 {
-		s.ReplyPath = true
-	}
+
+	s.UserDataHeaderIndicator = header&(0x01<<6) != 0
+	s.ReplyPath = header&(0x01<<7) != 0
+
 	oaLen, err := buf.ReadByte()
 	n++
 	if err != nil {
 		return
-	}
-	if oaLen > 16 {
-		return n, ErrIncorrectSize
 	}
 	buf.UnreadByte() // will read length again
 	n--
