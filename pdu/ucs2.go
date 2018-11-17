@@ -19,14 +19,33 @@ func EncodeUcs2(str string) []byte {
 }
 
 // DecodeUcs2 decodes the given UCS2 (UTF-16) octet data into a UTF-8 encoded string.
-func DecodeUcs2(octets []byte) (str string, err error) {
-	if len(octets)%2 != 0 {
+func DecodeUcs2(octets []byte, startsWithHeader bool) (str string, err error) {
+	octetsLng := len(octets)
+	headerLng := 0
+
+	if octetsLng == 0 {
+		err = ErrIncorrectDataLength
+		return
+	}
+
+	if startsWithHeader {
+		// just ignore header
+		headerLng = int(octets[0]) + 1
+		if (octetsLng - headerLng) <= 0 {
+			err = ErrIncorrectDataLength
+			return
+		}
+
+		octetsLng = octetsLng - headerLng
+	}
+
+	if octetsLng%2 != 0 {
 		err = ErrUnevenNumber
 		return
 	}
-	buf := make([]uint16, 0, len(octets)/2)
-	for i := 0; i < len(octets); i += 2 {
-		buf = append(buf, uint16(octets[i])<<8|uint16(octets[i+1]))
+	buf := make([]uint16, 0, octetsLng/2)
+	for i := 0; i < octetsLng; i += 2 {
+		buf = append(buf, uint16(octets[i+headerLng])<<8|uint16(octets[i+1+headerLng]))
 	}
 	runes := utf16.Decode(buf)
 	return string(runes), nil
