@@ -282,7 +282,7 @@ func (d *Device) handleReport(str string) (err error) {
 		}
 		var text string
 		if ussd.Enc == Encodings.UCS2 {
-			text, err = pdu.DecodeUcs2(ussd.Octets)
+			text, err = pdu.DecodeUcs2(ussd.Octets, false)
 			if err != nil {
 				return
 			}
