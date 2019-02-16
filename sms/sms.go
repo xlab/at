@@ -100,6 +100,18 @@ func (p *PhoneNumber) ReadFrom(octets []byte) {
 		return
 	}
 	addrType := octets[0]
+
+	// Alphanumeric, (coded according to GSM TS 03.38 7-bit default alphabet)
+	if addrType&0x70 == 0x50 {
+		// decode 7 bit
+		addr, err := pdu.Decode7Bit(octets[1:])
+		if err != nil {
+			// handle error, panic or log.Println("Decode7bit", octets, err)
+		}
+		*p = PhoneNumber(addr)
+		return
+	}
+
 	addr := pdu.DecodeSemiAddress(octets[1:])
 	if addrType&0x10 > 0 {
 		*p = PhoneNumber("+" + addr)
