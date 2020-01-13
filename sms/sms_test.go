@@ -53,7 +53,7 @@ func init() {
 		ServiceCenterAddress: "+79262000331",
 		ServiceCenterTime:    Timestamp(dateDeliverGsm7.In(time.Local)),
 	}
-	dateDeliverGsm7_2, _ := time.Parse(time.RFC3339, "2017-09-23T23:24:51+03:00")
+	dateDeliverGsm7_2, _ := time.Parse(time.RFC3339, "2017-09-22T21:24:51+03:00")
 	smsDeliverGsm7_2 = Message{
 		Text:                 "Torpedo SMS entregue p/ 5561999256868 (21:24:55 de 22.09.17).",
 		Encoding:             Encodings.Gsm7Bit_2,
