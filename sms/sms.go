@@ -252,10 +252,12 @@ type Message struct {
 
 	// Advanced
 	MessageReference         byte
+	Status                   byte
 	ReplyPathExists          bool
 	UserDataStartsWithHeader bool
 	StatusReportIndication   bool
 	StatusReportRequest      bool
+	StatusReportQualificator bool
 	MoreMessagesToSend       bool
 	LoopPrevention           bool
 	RejectDuplicates         bool
@@ -459,6 +461,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 			s.VPFormat = ValidityPeriodFormat(sms.ValidityPeriodFormat)
 		}
 
+		s.MessageReference = sms.MessageReference
 		s.ReplyPathExists = sms.ReplyPath
 		s.UserDataStartsWithHeader = sms.UserDataHeaderIndicator
 		s.StatusReportRequest = sms.StatusReportRequest
@@ -469,6 +472,43 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 			s.VP.ReadFrom(sms.ValidityPeriod)
 		}
 
+		switch s.Encoding {
+		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
+			s.Text, err = pdu.Decode7Bit(sms.UserData)
+			if err != nil {
+				return
+			}
+			s.Text = cutStr(s.Text, int(sms.UserDataLength))
+		case Encodings.UCS2:
+			s.Text, err = pdu.DecodeUcs2(sms.UserData, s.UserDataStartsWithHeader)
+			if err != nil {
+				return
+			}
+		default:
+			return 0, ErrUnknownEncoding
+		}
+	case MessageTypes.StatusReport:
+		var sms smsStatusReport
+		off, err2 := sms.FromBytes(octets[1+scLen:])
+		n += off
+		if err2 != nil {
+			return n, err2
+		}
+		s.MessageReference = sms.MessageReference
+		s.MoreMessagesToSend = sms.MoreMessagesToSend
+		s.LoopPrevention = sms.LoopPrevention
+		s.UserDataStartsWithHeader = sms.UserDataHeaderIndicator
+		if sms.UserDataHeaderIndicator {
+			err = s.UserDataHeader.ReadFrom(sms.UserData)
+			if err != nil {
+				return
+			}
+		}
+		s.StatusReportQualificator = sms.StatusReportQualificator
+		s.Status = sms.Status
+		s.Address.ReadFrom(sms.DestinationAddress[1:])
+		s.Encoding = Encoding(sms.DataCodingScheme)
+		s.ServiceCenterTime.ReadFrom(sms.ServiceCentreTimestamp)
 		switch s.Encoding {
 		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
 			s.Text, err = pdu.Decode7Bit(sms.UserData)
@@ -616,6 +656,118 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	s.UserData = s.UserData[:off]
 	n += off
 	return n, nil
+}
+
+// Low-level representation of an status-report-type SMS message (3GPP TS 23.040).
+type smsStatusReport struct {
+	MessageTypeIndicator     byte
+	MoreMessagesToSend       bool
+	LoopPrevention           bool
+	UserDataHeaderIndicator  bool
+	StatusReportQualificator bool
+	// =========================
+	MessageReference       byte
+	DestinationAddress     []byte
+	Parameters             byte
+	ProtocolIdentifier     byte
+	DataCodingScheme       byte
+	ServiceCentreTimestamp []byte
+	DischargeTimestamp     []byte
+	Status                 byte
+	UserDataLength         byte
+	UserData               []byte
+}
+
+func (s *smsStatusReport) FromBytes(octets []byte) (n int, err error) {
+	buf := bytes.NewReader(octets)
+	*s = smsStatusReport{}
+	header, err := buf.ReadByte()
+	n++
+	if err != nil {
+		return
+	}
+	s.MessageTypeIndicator = header & 0x03
+	if header>>2&0x01 == 0x00 {
+		s.MoreMessagesToSend = true
+	}
+	if header>>3&0x01 == 0x01 {
+		s.LoopPrevention = true
+	}
+	if header>>4&0x01 == 0x01 {
+		s.StatusReportQualificator = true
+	}
+	s.UserDataHeaderIndicator = header&(0x01<<6) != 0
+
+	s.MessageReference, err = buf.ReadByte()
+	n++
+	if err != nil {
+		return
+	}
+
+	daLen, err := buf.ReadByte()
+	n++
+	if err != nil {
+		return
+	}
+	if daLen > 16 {
+		return n, ErrIncorrectSize
+	}
+	buf.UnreadByte() // will read length again
+	n--
+	s.DestinationAddress = make([]byte, blocks(int(daLen), 2)+2)
+	off, err := io.ReadFull(buf, s.DestinationAddress)
+	n += off
+	if err != nil {
+		return
+	}
+	s.ServiceCentreTimestamp = make([]byte, 7)
+	off, err = io.ReadFull(buf, s.ServiceCentreTimestamp)
+	n += off
+	if err != nil {
+		return
+	}
+	s.DischargeTimestamp = make([]byte, 7)
+	off, err = io.ReadFull(buf, s.DischargeTimestamp)
+	n += off
+	if err != nil {
+		return
+	}
+	s.Status, err = buf.ReadByte()
+	n++
+	if err != nil {
+		return
+	}
+	s.Parameters, err = buf.ReadByte()
+	n++
+	if err != nil {
+		return n - 1, nil
+	}
+	if s.Parameters&0x01 != 0 {
+		s.ProtocolIdentifier, err = buf.ReadByte()
+		n++
+		if err != nil {
+			return
+		}
+	}
+	if s.Parameters&0x02 != 0 {
+		s.DataCodingScheme, err = buf.ReadByte()
+		n++
+		if err != nil {
+			return
+		}
+	}
+	if s.Parameters&0x04 != 0 {
+		s.UserDataLength, err = buf.ReadByte()
+		n++
+		if err != nil {
+			return
+		}
+		s.UserData = make([]byte, int(s.UserDataLength))
+		off, _ = io.ReadFull(buf, s.UserData)
+		s.UserData = s.UserData[:off]
+		n += off
+	}
+	return
 }
 
 // Low-level representation of an submit-type SMS message (3GPP TS 23.040).
