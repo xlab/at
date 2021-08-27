@@ -14,10 +14,11 @@ import (
 
 // Common errors.
 var (
-	ErrUnknownEncoding    = errors.New("sms: unsupported encoding")
-	ErrUnknownMessageType = errors.New("sms: unsupported message type")
-	ErrIncorrectSize      = errors.New("sms: decoded incorrect size of field")
-	ErrNonRelative        = errors.New("sms: non-relative validity period support is not implemented yet")
+	ErrUnknownEncoding               = errors.New("sms: unsupported encoding")
+	ErrUnknownMessageType            = errors.New("sms: unsupported message type")
+	ErrIncorrectSize                 = errors.New("sms: decoded incorrect size of field")
+	ErrNonRelative                   = errors.New("sms: non-relative validity period support is not implemented yet")
+	ErrIncorrectUserDataHeaderLength = errors.New("sms: incorrect user data header length ")
 )
 
 // MessageType represents the message's type.
@@ -247,6 +248,7 @@ type Message struct {
 	ServiceCenterAddress PhoneNumber
 	Address              PhoneNumber
 	Text                 string
+	UserDataHeader       UserDataHeader
 
 	// Advanced
 	MessageReference         byte
@@ -416,6 +418,12 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 		s.LoopPrevention = sms.LoopPrevention
 		s.ReplyPathExists = sms.ReplyPath
 		s.UserDataStartsWithHeader = sms.UserDataHeaderIndicator
+		if sms.UserDataHeaderIndicator {
+			err = s.UserDataHeader.ReadFrom(sms.UserData)
+			if err != nil {
+				return
+			}
+		}
 		s.StatusReportIndication = sms.StatusReportIndication
 		s.Address.ReadFrom(sms.OriginatingAddress[1:])
 		s.Encoding = Encoding(sms.DataCodingScheme)
@@ -727,6 +735,27 @@ func (s *smsSubmit) FromBytes(octets []byte) (n int, err error) {
 	s.UserData = s.UserData[:off]
 	n += off
 	return n, nil
+}
+
+type UserDataHeader struct {
+	TotalNumber int
+	Sequence    int
+	Tag         int
+}
+
+func (udh *UserDataHeader) ReadFrom(octets []byte) error {
+	octetsLng := len(octets)
+	headerLng := int(octets[0]) + 1
+	if (octetsLng-headerLng) <= 0 || headerLng <= 5 {
+		return ErrIncorrectUserDataHeaderLength
+	}
+
+	h := octets[:headerLng]
+	udh.Sequence = int(h[5])
+	udh.TotalNumber = int(h[4])
+	udh.Tag = int(h[3])
+
+	return nil
 }
 
 func cutStr(str string, n int) string {
