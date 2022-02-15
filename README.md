@@ -1,4 +1,10 @@
-## AT [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/xlab/at)
+AT
+===
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/xlab/at.svg)](https://pkg.go.dev/github.com/xlab/at)
+[![Build Status](https://github.com/xlab/at/workflows/go/badge.svg?branch=master)](https://github.com/xlab/at/actions)
+[![Coverage](https://codecov.io/gh/xlab/at/branch/master/graph/badge.svg)](https://codecov.io/gh/xlab/at)
+
 
 Package at is a framework for communication with AT-compatible devices like Huawei modems via serial port. Currently this package is well-suited for Huawei devices and since AT-commands set may vary from device to device, sometimes you'll be forced to implement some logic by yourself.
 

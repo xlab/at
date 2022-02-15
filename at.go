@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tarm/goserial"
+	serial "github.com/tarm/goserial"
 	"github.com/xlab/at/pdu"
 	"github.com/xlab/at/sms"
 )
@@ -22,7 +22,7 @@ const Timeout = time.Minute
 const Sep = "\r\n"
 
 // Ctrl+Z code.
-const Sub = string(0x1A)
+const Sub = "\x1A"
 
 // Common errors.
 var (
