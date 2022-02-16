@@ -229,13 +229,10 @@ func (t *Timestamp) ReadFrom(octets []byte) {
 	date := time.Date(millennium+year, time.Month(month), day, hour, minute, second, 0, time.UTC)
 
 	if negativeOffset {
-		// was negative, so make UTC
-		date = date.Add(offset)
-	} else {
-		// was positive, so make UTC
-		date = date.Add(-offset)
+		offset = -offset
 	}
-	*t = Timestamp(date.In(time.Local))
+	date = date.Add(-offset).In(time.FixedZone("", int(offset.Seconds())))
+	*t = Timestamp(date)
 }
 
 // Message represents an SMS message, including some advanced fields. This

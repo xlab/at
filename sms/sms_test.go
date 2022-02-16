@@ -75,7 +75,7 @@ func parseTimestamp(timetamp string) Timestamp {
 	if err != nil {
 		panic(err)
 	}
-	return Timestamp(date.In(time.Local))
+	return Timestamp(date)
 }
 
 func TestSmsDeliverReadFromUCS2(t *testing.T) {
