@@ -245,6 +245,7 @@ type Message struct {
 	VP                   ValidityPeriod
 	VPFormat             ValidityPeriodFormat
 	ServiceCenterTime    Timestamp
+	DischargeTime        Timestamp
 	ServiceCenterAddress PhoneNumber
 	Address              PhoneNumber
 	Text                 string
@@ -355,6 +356,46 @@ func (s *Message) PDU() (int, []byte, error) {
 		case ValidityPeriodFormats.Absolute, ValidityPeriodFormats.Enhanced:
 			return 0, nil, ErrNonRelative
 		}
+
+		var userData []byte
+		switch s.Encoding {
+		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
+			userData = pdu.Encode7Bit(s.Text)
+			sms.UserDataLength = byte(len(s.Text))
+		case Encodings.UCS2:
+			userData = pdu.EncodeUcs2(s.Text)
+			sms.UserDataLength = byte(len(userData))
+		default:
+			return 0, nil, ErrUnknownEncoding
+		}
+
+		sms.UserData = userData
+		n, err := buf.Write(sms.Bytes())
+		if err != nil {
+			return 0, nil, err
+		}
+		return n, buf.Bytes(), nil
+	case MessageTypes.StatusReport:
+		var sms smsStatusReport
+		sms.MessageTypeIndicator = byte(s.Type)
+		sms.UserDataHeaderIndicator = s.UserDataStartsWithHeader
+		sms.MoreMessagesToSend = s.MoreMessagesToSend
+		sms.LoopPrevention = s.LoopPrevention
+		sms.StatusReportQualificator = s.StatusReportQualificator
+		sms.MessageReference = s.MessageReference
+
+		addrLen, addr, err := s.Address.PDU()
+		if err != nil {
+			return 0, nil, err
+		}
+		var addrBuf bytes.Buffer
+		addrBuf.WriteByte(byte(addrLen))
+		addrBuf.Write(addr)
+		sms.DestinationAddress = addrBuf.Bytes()
+
+		sms.ServiceCentreTimestamp = s.ServiceCenterTime.PDU()
+		sms.DischargeTimestamp = s.DischargeTime.PDU()
+		sms.Status = s.Status
 
 		var userData []byte
 		switch s.Encoding {
@@ -509,6 +550,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 		s.Address.ReadFrom(sms.DestinationAddress[1:])
 		s.Encoding = Encoding(sms.DataCodingScheme)
 		s.ServiceCenterTime.ReadFrom(sms.ServiceCentreTimestamp)
+		s.DischargeTime.ReadFrom(sms.DischargeTimestamp)
 		switch s.Encoding {
 		case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
 			s.Text, err = pdu.Decode7Bit(sms.UserData)
@@ -676,6 +718,50 @@ type smsStatusReport struct {
 	Status                 byte
 	UserDataLength         byte
 	UserData               []byte
+}
+
+func (s *smsStatusReport) Bytes() []byte {
+	var buf bytes.Buffer
+	header := s.MessageTypeIndicator // 0-1 bits
+	if !s.MoreMessagesToSend {
+		header |= 0x01 << 2 // 2 bit
+	}
+	if s.LoopPrevention {
+		header |= 0x01 << 3 // 3 bit
+	}
+	if s.StatusReportQualificator {
+		header |= 0x01 << 5 // 5 bit
+	}
+	if s.UserDataHeaderIndicator {
+		header |= 0x01 << 6 // 6 bit
+	}
+	buf.WriteByte(header)
+	buf.WriteByte(s.MessageReference)
+	buf.Write(s.DestinationAddress)
+	buf.Write(s.ServiceCentreTimestamp)
+	buf.Write(s.DischargeTimestamp)
+	buf.WriteByte(s.Status)
+
+	var trailer bytes.Buffer
+	var indicator byte
+	if s.ProtocolIdentifier != 0 {
+		indicator |= 0x01 << 0 // 0 bit
+		trailer.WriteByte(s.ProtocolIdentifier)
+	}
+	if s.DataCodingScheme != 0 {
+		indicator |= 0x01 << 1 // 1 bit
+		trailer.WriteByte(s.DataCodingScheme)
+	}
+	if s.UserDataHeaderIndicator {
+		indicator |= 0x01 << 2 // 2 bit
+		trailer.WriteByte(s.UserDataLength)
+		trailer.Write(s.UserData)
+	}
+	buf.WriteByte(indicator)
+	if indicator != 0 {
+		trailer.WriteTo(&buf)
+	}
+	return buf.Bytes()
 }
 
 func (s *smsStatusReport) FromBytes(octets []byte) (n int, err error) {

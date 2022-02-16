@@ -23,6 +23,8 @@ var (
 	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA046379180E"
 	pduDeliverGsm7_2 = "0791551010010201040D91551699296568F80011719022124215293DD4B71C5E26BF" +
 		"41D3E6145476D3E5E573BD0C82BF40B59A2D96CBE564351BCE8603A164319D8CA6ABD540E432482673C172AED82DE502"
+
+	pduStatusReport = "079194710600400706360d91947106000000f122206151457440222061514584400000"
 )
 
 var (
@@ -67,6 +69,15 @@ var (
 		ServiceCenterAddress: "+79262000331",
 		VP:                   ValidityPeriod(time.Hour * 24 * 4),
 		VPFormat:             ValidityPeriodFormats.Relative,
+	}
+	smsReport = Message{
+		Type:                 MessageTypes.StatusReport,
+		Status:               0x00, // received
+		MessageReference:     54,
+		Address:              "+4917600000001",
+		ServiceCenterAddress: "+491760000470",
+		ServiceCenterTime:    parseTimestamp("2022-02-16T15:54:47+01:00"),
+		DischargeTime:        parseTimestamp("2022-02-16T15:54:48+01:00"),
 	}
 )
 
@@ -180,6 +191,21 @@ func TestSmsSubmitPduGsm7(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(pduSubmitGsm7)/2-8, n)
 	data, err := util.Bytes(pduSubmitGsm7)
+	assert.NoError(t, err)
+	assert.Equal(t, data, octets)
+}
+
+func TestSmsStatusReport(t *testing.T) {
+	t.Parallel()
+
+	m := Message{}
+	_, err := m.ReadFrom(util.MustBytes(pduStatusReport))
+	assert.NoError(t, err)
+
+	n, octets, err := smsReport.PDU()
+	assert.NoError(t, err)
+	assert.Equal(t, len(pduStatusReport)/2-8, n)
+	data, err := util.Bytes(pduStatusReport)
 	assert.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
