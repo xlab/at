@@ -7,6 +7,8 @@ import (
 )
 
 func TestBytes(t *testing.T) {
+	t.Parallel()
+
 	out, err := Bytes("4160629140050E")
 	_, err2 := Bytes("4160629140050E0")
 	_, err3 := Bytes("4160629140050K")
@@ -18,6 +20,8 @@ func TestBytes(t *testing.T) {
 }
 
 func TestHexString(t *testing.T) {
+	t.Parallel()
+
 	buf := []byte{0x41, 0x60, 0x62, 0x91, 0x40, 0x5, 0x0e}
 	out := HexString(buf)
 	exp := "4160629140050E"

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tarm/goserial"
+	serial "github.com/tarm/goserial"
 	"github.com/xlab/at/pdu"
 	"github.com/xlab/at/sms"
 )
@@ -22,7 +22,7 @@ const Timeout = time.Minute
 const Sep = "\r\n"
 
 // Ctrl+Z code.
-const Sub = string(0x1A)
+const Sub = "\x1A"
 
 // Common errors.
 var (
@@ -129,7 +129,7 @@ func (d *Device) sendInteractive(part1, part2 string, prompt byte) (err error) {
 		exitInteractive()
 		return
 	}
-	return
+	return nil
 }
 
 // sanityCheck checks whether ports are opened and (if requested) that the initialization
@@ -217,7 +217,7 @@ func (d *Device) Send(req string) (reply string, err error) {
 			t.Reset(Timeout)
 		}
 	}
-	return
+	return reply, err
 }
 
 // Watch starts a monitoring process that will wait for events
@@ -357,7 +357,7 @@ func (d *Device) handleReport(str string) (err error) {
 			return errors.New("at: unknown report: " + str)
 		}
 	}
-	return
+	return nil
 }
 
 // Open is used to open serial ports of the device. This should be used first.

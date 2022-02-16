@@ -8,7 +8,7 @@ import (
 // ErrUnevenNumber happens when the number of octets (bytes) in the input is uneven.
 var ErrUnevenNumber = errors.New("decode ucs2: uneven number of octets")
 
-// ErrIncorrectDataLength happens when the length of octets is less than the header, defined by the first entry of the octets
+// ErrIncorrectDataLength happens when the length of octets is less than the header, defined by the first entry of the octets.
 var ErrIncorrectDataLength = errors.New("decode ucs2: incorrect data length in first entry of octets")
 
 // EncodeUcs2 encodes the given UTF-8 text into UCS2 (UTF-16) encoding and returns the produced octets.
