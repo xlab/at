@@ -1,4 +1,4 @@
 .DS_Store
 example/daemon/daemon
 coverage.out
-coverage.tmp
+coverage.html
