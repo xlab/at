@@ -24,16 +24,18 @@ var UnknownOpt = Opt{ID: -1, Description: "-"}
 // UnknownStringOpt represents a string option that was parsed incorrectly or was not parsed at all.
 var UnknownStringOpt = StringOpt{ID: "nil", Description: "Unknown"}
 
-// KillCmd is an artifical AT command that may be successfully sent to device in order
-// to emulate the responce from it. In other words, if a connection with device stalled and
+// KillCmd is an artificial AT command that may be successfully sent to device in order
+// to emulate the response from it. In other words, if a connection with device stalled and
 // no bytes could be read, then this command is used to read something and then close the connection.
 const KillCmd = "AT_KILL"
 
 // NoopCmd is like a ping command that signals that the device is responsive.
 const NoopCmd = "AT"
 
-type optMap map[int]Opt
-type stringOpts []StringOpt
+type (
+	optMap     map[int]Opt
+	stringOpts []StringOpt
+)
 
 func (o optMap) Resolve(id int) Opt {
 	if opt, ok := o[id]; ok {

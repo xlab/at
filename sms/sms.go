@@ -121,7 +121,7 @@ func (p *PhoneNumber) ReadFrom(octets []byte) {
 	return
 }
 
-// USSD represents an USSD query string
+// USSD represents an USSD query string.
 type USSD string
 
 // Gsm7Bit encodes USSD query into GSM 7-Bit packed octets.
@@ -214,7 +214,7 @@ func (t Timestamp) PDU() []byte {
 
 // ReadFrom reads a semi-encoded timestamp from the given octets.
 func (t *Timestamp) ReadFrom(octets []byte) {
-	millenium := (time.Now().Year() / 1000) * 1000
+	millennium := (time.Now().Year() / 1000) * 1000
 	year := pdu.Decode(pdu.Swap(octets[0]))
 	month := pdu.Decode(pdu.Swap(octets[1]))
 	day := pdu.Decode(pdu.Swap(octets[2]))
@@ -226,7 +226,7 @@ func (t *Timestamp) ReadFrom(octets []byte) {
 	quarters := pdu.Decode(pdu.Swap(octets[6] & 0xF7))
 	offset := time.Duration(quarters) * 15 * time.Minute
 
-	date := time.Date(millenium+year, time.Month(month), day, hour, minute, second, 0, time.UTC)
+	date := time.Date(millennium+year, time.Month(month), day, hour, minute, second, 0, time.UTC)
 
 	if negativeOffset {
 		// was negative, so make UTC
@@ -483,7 +483,7 @@ func (s *Message) ReadFrom(octets []byte) (n int, err error) {
 		return n, ErrUnknownMessageType
 	}
 
-	return
+	return n, nil
 }
 
 // Low-level representation of an deliver-type SMS message (3GPP TS 23.040).
@@ -494,7 +494,7 @@ type smsDeliver struct {
 	ReplyPath               bool
 	UserDataHeaderIndicator bool
 	StatusReportIndication  bool
-	// =========================
+
 	OriginatingAddress     []byte
 	ProtocolIdentifier     byte
 	DataCodingScheme       byte
@@ -532,23 +532,23 @@ func (s *smsDeliver) Bytes() []byte {
 }
 
 // GSM 03.**
-//The TP-User-Data-Header-Indicator is a 1 bit field within bit 6 of the first octet of an SMS-SUBMIT and
-//SMS-DELIVER PDU and has the following values.
-//Bit no. 6 0 The TP-UD field contains only the short message
-//1 The beginning of the TP-UD field contains a Header in addition to the
-//short message
+// The TP-User-Data-Header-Indicator is a 1 bit field within bit 6 of the first octet of an
+// SMS-SUBMIT and SMS-DELIVER PDU and has the following values.
+// Bit no. 6 0 The TP-UD field contains only the short message 1 The beginning of the TP-UD
+// field contains a Header in addition to the short message
 
-//The TP-Reply-Path is a 1-bit field, located within bit no 7 of the first octet of both SMS-DELIVER and
-//SMS-SUBMIT, and to be given the following values:
-//Bit no 7: 0 TP-Reply-Path parameter is not set in this SMS-SUBMIT/DELIVER
-//1 TP-Reply-Path parameter is set in this SMS-SUBMIT/DELIVER
+// The TP-Reply-Path is a 1-bit field, located within bit no 7 of the first octet of both
+// SMS-DELIVER and SMS-SUBMIT, and to be given the following values:
+// Bit no 7: 0 TP-Reply-Path parameter is not set in this SMS-SUBMIT/DELIVER
+// 1 TP-Reply-Path parameter is set in this SMS-SUBMIT/DELIVER
 
 // TP-OA TP-Originating-Address  2-12 octets
-// Each address field of the SM-TL consists of the following sub-fields: An Address-Length field of one octet,
-// a Type-of-Address field of one octet, and one Address-Value field of variable length
+// Each address field of the SM-TL consists of the following sub-fields: An Address-Length
+// field of one octet, a Type-of-Address field of one octet, and one Address-Value field
+// of variable length
 //
-// The Address-Length field is an integer representation of the number of useful semi-octets within the
-// Address-Value field, i.e. excludes any semi octet containing only fill bits.
+// The Address-Length field is an integer representation of the number of useful semi-octets
+// within the Address-Value field, i.e. excludes any semi octet containing only fill bits.
 
 func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	buf := bytes.NewReader(octets)
@@ -610,7 +610,7 @@ func (s *smsDeliver) FromBytes(octets []byte) (n int, err error) {
 	off, _ = io.ReadFull(buf, s.UserData)
 	s.UserData = s.UserData[:off]
 	n += off
-	return
+	return n, nil
 }
 
 // Low-level representation of an submit-type SMS message (3GPP TS 23.040).
@@ -621,7 +621,7 @@ type smsSubmit struct {
 	ReplyPath               bool
 	UserDataHeaderIndicator bool
 	StatusReportRequest     bool
-	// =========================
+
 	MessageReference   byte
 	DestinationAddress []byte
 	ProtocolIdentifier byte
@@ -729,7 +729,7 @@ func (s *smsSubmit) FromBytes(octets []byte) (n int, err error) {
 	off, _ = io.ReadFull(buf, s.UserData)
 	s.UserData = s.UserData[:off]
 	n += off
-	return
+	return n, nil
 }
 
 func cutStr(str string, n int) string {

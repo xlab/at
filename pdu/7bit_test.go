@@ -9,7 +9,9 @@ import (
 )
 
 func TestEncode7Bit(t *testing.T) {
-	data := []struct {
+	t.Parallel()
+
+	testcases := []struct {
 		str string
 		exp []byte
 	}{
@@ -18,13 +20,15 @@ func TestEncode7Bit(t *testing.T) {
 		{"AAAAAAAAAAAAAAB", util.MustBytes("C16030180C0683C16030180C0A1B")},
 		{"height of eifel", util.MustBytes("E872FA8CA683DE6650396D2EB31B")},
 	}
-	for _, d := range data {
-		assert.Equal(t, d.exp, Encode7Bit(d.str))
+	for _, tc := range testcases {
+		assert.Equal(t, tc.exp, Encode7Bit(tc.str))
 	}
 }
 
 func TestDecode7Bit(t *testing.T) {
-	data := []struct {
+	t.Parallel()
+
+	testcases := []struct {
 		exp   string
 		pack7 []byte
 	}{
@@ -34,21 +38,25 @@ func TestDecode7Bit(t *testing.T) {
 		{"AAAAAAAAAAAAAAB", util.MustBytes("C16030180C0683C16030180C0A1B")},
 		{"height of eifel", util.MustBytes("E872FA8CA683DE6650396D2EB31B")},
 	}
-	for _, d := range data {
-		log.Println(displayPack(d.pack7))
-		out, err := Decode7Bit(d.pack7)
+	for _, tc := range testcases {
+		log.Println(displayPack(tc.pack7))
+		out, err := Decode7Bit(tc.pack7)
 		assert.NoError(t, err)
-		assert.Equal(t, d.exp, out)
+		assert.Equal(t, tc.exp, out)
 	}
 }
 
 func TestPack7Bit(t *testing.T) {
+	t.Parallel()
+
 	raw7 := []byte{Esc, 0x3c, Esc, 0x3e}
 	exp := []byte{0x1b, 0xde, 0xc6, 0x7}
 	assert.Equal(t, exp, pack7Bit(raw7))
 }
 
 func TestUnpack7Bit(t *testing.T) {
+	t.Parallel()
+
 	pack7 := []byte{0x1b, 0xde, 0xc6, 0x7}
 	exp := []byte{Esc, 0x3c, Esc, 0x3e}
 	assert.Equal(t, exp, unpack7Bit(pack7))

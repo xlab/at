@@ -167,7 +167,7 @@ func (b *bootHandshakeReport) Parse(str string) (err error) {
 	return
 }
 
-// Ussd type represents the USSD query string
+// Ussd type represents the USSD query string.
 type Ussd string
 
 // Encode converts the query string into bytes according to the
@@ -278,7 +278,7 @@ func (p *DefaultProfile) CNMI(mode, mt, bm, ds, bfr int) (err error) {
 }
 
 // CMGF sends AT+CMGF with the given value to the device. It toggles
-// the mode of message handling betwen PDU and TEXT.
+// the mode of message handling between PDU and TEXT.
 //
 // Note, that the at package works only in PDU mode.
 func (p *DefaultProfile) CMGF(text bool) (err error) {
@@ -292,7 +292,7 @@ func (p *DefaultProfile) CMGF(text bool) (err error) {
 }
 
 // CMGL sends AT+CMGL with the given filtering flag to the device and then parses
-// the list of received messages that match ther filter. See MessageFlags for the
+// the list of received messages that match their filter. See MessageFlags for the
 // list of supported filters.
 func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint64][]byte, err error) {
 	req := fmt.Sprintf(`AT+CMGL=%d`, flag.ID)
@@ -381,7 +381,7 @@ func (s *SystemInfoReport) Parse(str string) (err error) {
 		if n, err := strconv.ParseUint(str, 10, 8); err != nil {
 			return err
 		} else if opt := resolver(int(n)); opt == UnknownOpt {
-			return errors.New("resolver: unknwon opt")
+			return errors.New("resolver: unknown opt")
 		} else {
 			*field = opt
 			return nil
@@ -406,7 +406,7 @@ func (s *SystemInfoReport) Parse(str string) (err error) {
 	if err = fetch(fields[6], &s.SystemSubmode, SystemSubmodes.Resolve); err != nil {
 		return ErrParseReport
 	}
-	return
+	return nil
 }
 
 // SYSINFO sends AT^SYSINFO to the device and parses the output.
@@ -421,7 +421,7 @@ func (p *DefaultProfile) SYSINFO() (info *SystemInfoReport, err error) {
 }
 
 // COPS sends AT+COPS to the device with parameters that define autosearch and
-// the operator's name representation. The default represenation is numerical.
+// the operator's name representation. The default representation is numerical.
 func (p *DefaultProfile) COPS(auto bool, text bool) (err error) {
 	var a, t int
 	if !auto {

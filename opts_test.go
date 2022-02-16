@@ -8,6 +8,8 @@ import (
 
 // Test the field access for an opt.
 func TestOpt(t *testing.T) {
+	t.Parallel()
+
 	opt := ServiceStates.Restricted
 	assert.Equal(t, 1, opt.ID)
 	assert.Equal(t, "Restricted service", opt.Description)
@@ -15,6 +17,8 @@ func TestOpt(t *testing.T) {
 
 // Test the resolve function of an opt.
 func TestResolve(t *testing.T) {
+	t.Parallel()
+
 	opt := ServiceStates.Restricted
 	assert.Equal(t, opt, ServiceStates.Resolve(1))
 }

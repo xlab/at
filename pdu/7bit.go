@@ -6,17 +6,16 @@ import (
 	"fmt"
 )
 
-// Esc code.
-const Esc byte = 0x1B
+const (
+	Esc byte = 0x1B // Esc code.
+	Sub byte = 0x1A // Ctrl+Z code.
+	CR  byte = 0x0D // <CR> code.
+)
 
-// Ctrl+Z code.
-const Sub byte = 0x1A
-
-// <CR> code.
-const CR byte = 0x0D
-
-var crcr = []byte{CR, CR}
-var cr = []byte{CR}
+var (
+	crcr = []byte{CR, CR}
+	cr   = []byte{CR}
+)
 
 const (
 	max     byte = 0x7F
@@ -105,12 +104,12 @@ func pack7Bit(raw7 []byte) []byte {
 	// N.B. in order to not confuse 7 zero-bits with @
 	// <CR> code is added to the packed bits.
 	if 8-bit == 7 {
-		oct, bit = pack(pack7, CR, oct, bit)
+		pack(pack7, CR, oct, bit)
 	} else if bit == 0 && b == CR {
 		// and if data ends with <CR> on the octet boundary,
 		// then we add an additional octet with <CR>. See (3GPP TS 23.038).
 		pack7 = append(pack7, 0x00)
-		oct, bit = pack(pack7, CR, oct, bit)
+		pack(pack7, CR, oct, bit)
 	}
 	return pack7
 }
@@ -204,7 +203,7 @@ func (rt *runeTable) Rune(idx int) rune {
 	return unknown
 }
 
-// Thanks, Jeroen @ Mobile Tidings
+// Thanks, Jeroen @ Mobile Tidings.
 var gsmTable = runeTable{
 	/* 0x00 */ 0x0040, /* COMMERCIAL AT */
 	/* 0x01 */ 0x00A3, /* POUND SIGN */

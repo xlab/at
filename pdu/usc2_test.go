@@ -7,6 +7,7 @@ import (
 )
 
 var testStringUcs2 = "Этот абонент звонил вам 2 раза"
+
 var testOctetsUcs2 = []byte{
 	0x04, 0x2D, 0x04, 0x42, 0x04, 0x3E, 0x04, 0x42,
 	0x00, 0x20, 0x04, 0x30, 0x04, 0x31, 0x04, 0x3E,
@@ -19,12 +20,16 @@ var testOctetsUcs2 = []byte{
 }
 
 func TestEncodeUcs2(t *testing.T) {
+	t.Parallel()
+
 	out := EncodeUcs2(testStringUcs2)
 	exp := testOctetsUcs2
 	assert.Equal(t, exp, out)
 }
 
 func TestDecodeUcs2(t *testing.T) {
+	t.Parallel()
+
 	oct := testOctetsUcs2
 	out, err := DecodeUcs2(oct, false)
 	exp := testStringUcs2

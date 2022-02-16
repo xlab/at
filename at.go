@@ -129,7 +129,7 @@ func (d *Device) sendInteractive(part1, part2 string, prompt byte) (err error) {
 		exitInteractive()
 		return
 	}
-	return
+	return nil
 }
 
 // sanityCheck checks whether ports are opened and (if requested) that the initialization
@@ -217,7 +217,7 @@ func (d *Device) Send(req string) (reply string, err error) {
 			t.Reset(Timeout)
 		}
 	}
-	return
+	return reply, err
 }
 
 // Watch starts a monitoring process that will wait for events
@@ -357,7 +357,7 @@ func (d *Device) handleReport(str string) (err error) {
 			return errors.New("at: unknown report: " + str)
 		}
 	}
-	return
+	return nil
 }
 
 // Open is used to open serial ports of the device. This should be used first.

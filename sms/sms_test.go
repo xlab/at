@@ -84,6 +84,8 @@ func init() {
 }
 
 func TestSmsDeliverReadFromUCS2(t *testing.T) {
+	t.Parallel()
+
 	var msg Message
 	data, err := util.Bytes(pduDeliverUCS2)
 	assert.NoError(t, err)
@@ -94,6 +96,8 @@ func TestSmsDeliverReadFromUCS2(t *testing.T) {
 }
 
 func TestSmsDeliverReadFromGsm7(t *testing.T) {
+	t.Parallel()
+
 	var msg Message
 	data, err := util.Bytes(pduDeliverGsm7)
 	assert.NoError(t, err)
@@ -104,6 +108,8 @@ func TestSmsDeliverReadFromGsm7(t *testing.T) {
 }
 
 func TestSmsDeliverReadFromGsm7_2(t *testing.T) {
+	t.Parallel()
+
 	var msg Message
 	data, err := util.Bytes(pduDeliverGsm7_2)
 	assert.NoError(t, err)
@@ -114,6 +120,8 @@ func TestSmsDeliverReadFromGsm7_2(t *testing.T) {
 }
 
 func TestSmsDeliverPduUCS2(t *testing.T) {
+	t.Parallel()
+
 	n, octets, err := smsDeliverUCS2.PDU()
 	assert.NoError(t, err)
 	assert.Equal(t, len(pduDeliverUCS2)/2-8, n)
@@ -123,15 +131,21 @@ func TestSmsDeliverPduUCS2(t *testing.T) {
 }
 
 func TestSmsDeliverPduGsm7(t *testing.T) {
+	t.Parallel()
+
 	n, octets, err := smsDeliverGsm7.PDU()
 	assert.NoError(t, err)
 	assert.Equal(t, len(pduDeliverGsm7)/2-8, n)
 	data, err := util.Bytes(pduDeliverGsm7)
+	t.Logf("%02x\n", string(data))
+	t.Logf("%02x\n", string(octets))
 	assert.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
 
 func TestSmsSubmitReadFromUCS2(t *testing.T) {
+	t.Parallel()
+
 	var msg Message
 	data, err := util.Bytes(pduSubmitUCS2)
 	assert.NoError(t, err)
@@ -142,6 +156,8 @@ func TestSmsSubmitReadFromUCS2(t *testing.T) {
 }
 
 func TestSmsSubmitReadFromGsm7(t *testing.T) {
+	t.Parallel()
+
 	var msg Message
 	data, err := util.Bytes(pduSubmitGsm7)
 	assert.NoError(t, err)
@@ -152,6 +168,8 @@ func TestSmsSubmitReadFromGsm7(t *testing.T) {
 }
 
 func TestSmsSubmitPduUCS2(t *testing.T) {
+	t.Parallel()
+
 	n, octets, err := smsSubmitUCS2.PDU()
 	assert.NoError(t, err)
 	assert.Equal(t, len(pduSubmitUCS2)/2-8, n)
@@ -161,6 +179,8 @@ func TestSmsSubmitPduUCS2(t *testing.T) {
 }
 
 func TestSmsSubmitPduGsm7(t *testing.T) {
+	t.Parallel()
+
 	n, octets, err := smsSubmitGsm7.PDU()
 	assert.NoError(t, err)
 	assert.Equal(t, len(pduSubmitGsm7)/2-8, n)
