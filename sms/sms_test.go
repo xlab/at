@@ -26,43 +26,30 @@ var (
 )
 
 var (
-	smsDeliverUCS2   Message
-	smsDeliverGsm7   Message
-	smsDeliverGsm7_2 Message
-	smsSubmitUCS2    Message
-	smsSubmitGsm7    Message
-)
-
-func init() {
-	dateDeliverUCS2, _ := time.Parse(time.RFC3339, "2014-06-26T21:36:30+04:00")
 	smsDeliverUCS2 = Message{
 		Text:                 "Этот абонент звонил вам 2 раза. Последний -  26 июня в 21:35",
 		Encoding:             Encodings.UCS2,
 		Type:                 MessageTypes.Deliver,
 		Address:              "+79269965690",
 		ServiceCenterAddress: "+79168999100",
-		ServiceCenterTime:    Timestamp(dateDeliverUCS2.In(time.Local)),
+		ServiceCenterTime:    parseTimestamp("2014-06-26T21:36:30+04:00"),
 	}
-
-	dateDeliverGsm7, _ := time.Parse(time.RFC3339, "2014-06-26T19:04:51+04:00")
 	smsDeliverGsm7 = Message{
 		Text:                 "crap",
 		Encoding:             Encodings.Gsm7Bit,
 		Type:                 MessageTypes.Deliver,
 		Address:              "+79269965690",
 		ServiceCenterAddress: "+79262000331",
-		ServiceCenterTime:    Timestamp(dateDeliverGsm7.In(time.Local)),
+		ServiceCenterTime:    parseTimestamp("2014-06-26T19:04:51+04:00"),
 	}
-	dateDeliverGsm7_2, _ := time.Parse(time.RFC3339, "2017-09-22T21:24:51+03:00")
 	smsDeliverGsm7_2 = Message{
 		Text:                 "Torpedo SMS entregue p/ 5561999256868 (21:24:55 de 22.09.17).",
 		Encoding:             Encodings.Gsm7Bit_2,
 		Type:                 MessageTypes.Deliver,
 		Address:              "+5561999256868",
 		ServiceCenterAddress: "+550101102010",
-		ServiceCenterTime:    Timestamp(dateDeliverGsm7_2.In(time.Local)),
+		ServiceCenterTime:    parseTimestamp("2017-09-22T21:24:51+03:00"),
 	}
-
 	smsSubmitUCS2 = Message{
 		Text:                 "Этот абонент звонил вам 2 раза. Последний -  26 июня в 21:35",
 		Encoding:             Encodings.UCS2,
@@ -81,6 +68,14 @@ func init() {
 		VP:                   ValidityPeriod(time.Hour * 24 * 4),
 		VPFormat:             ValidityPeriodFormats.Relative,
 	}
+)
+
+func parseTimestamp(timetamp string) Timestamp {
+	date, err := time.Parse(time.RFC3339, timetamp)
+	if err != nil {
+		panic(err)
+	}
+	return Timestamp(date.In(time.Local))
 }
 
 func TestSmsDeliverReadFromUCS2(t *testing.T) {
