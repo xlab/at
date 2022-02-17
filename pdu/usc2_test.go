@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testStringUcs2 = "Этот абонент звонил вам 2 раза"
@@ -33,6 +34,6 @@ func TestDecodeUcs2(t *testing.T) {
 	oct := testOctetsUcs2
 	out, err := DecodeUcs2(oct, false)
 	exp := testStringUcs2
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, exp, out)
 }

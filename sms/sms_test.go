@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xlab/at/util"
 )
 
@@ -94,9 +95,9 @@ func TestSmsDeliverReadFromUCS2(t *testing.T) {
 
 	var msg Message
 	data, err := util.Bytes(pduDeliverUCS2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	n, err := msg.ReadFrom(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsDeliverUCS2, msg)
 }
@@ -106,9 +107,9 @@ func TestSmsDeliverReadFromGsm7(t *testing.T) {
 
 	var msg Message
 	data, err := util.Bytes(pduDeliverGsm7)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	n, err := msg.ReadFrom(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsDeliverGsm7, msg)
 }
@@ -118,9 +119,9 @@ func TestSmsDeliverReadFromGsm7_2(t *testing.T) {
 
 	var msg Message
 	data, err := util.Bytes(pduDeliverGsm7_2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	n, err := msg.ReadFrom(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsDeliverGsm7_2, msg)
 }
@@ -129,10 +130,10 @@ func TestSmsDeliverPduUCS2(t *testing.T) {
 	t.Parallel()
 
 	n, octets, err := smsDeliverUCS2.PDU()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(pduDeliverUCS2)/2-8, n)
 	data, err := util.Bytes(pduDeliverUCS2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
 
@@ -140,12 +141,12 @@ func TestSmsDeliverPduGsm7(t *testing.T) {
 	t.Parallel()
 
 	n, octets, err := smsDeliverGsm7.PDU()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(pduDeliverGsm7)/2-8, n)
 	data, err := util.Bytes(pduDeliverGsm7)
 	t.Logf("%02x\n", string(data))
 	t.Logf("%02x\n", string(octets))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
 
@@ -154,9 +155,9 @@ func TestSmsSubmitReadFromUCS2(t *testing.T) {
 
 	var msg Message
 	data, err := util.Bytes(pduSubmitUCS2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	n, err := msg.ReadFrom(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsSubmitUCS2, msg)
 }
@@ -166,9 +167,9 @@ func TestSmsSubmitReadFromGsm7(t *testing.T) {
 
 	var msg Message
 	data, err := util.Bytes(pduSubmitGsm7)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	n, err := msg.ReadFrom(data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsSubmitGsm7, msg)
 }
@@ -177,10 +178,10 @@ func TestSmsSubmitPduUCS2(t *testing.T) {
 	t.Parallel()
 
 	n, octets, err := smsSubmitUCS2.PDU()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(pduSubmitUCS2)/2-8, n)
 	data, err := util.Bytes(pduSubmitUCS2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
 
@@ -188,10 +189,10 @@ func TestSmsSubmitPduGsm7(t *testing.T) {
 	t.Parallel()
 
 	n, octets, err := smsSubmitGsm7.PDU()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(pduSubmitGsm7)/2-8, n)
 	data, err := util.Bytes(pduSubmitGsm7)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
 
@@ -200,12 +201,12 @@ func TestSmsStatusReport(t *testing.T) {
 
 	m := Message{}
 	_, err := m.ReadFrom(util.MustBytes(pduStatusReport))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	n, octets, err := smsReport.PDU()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(pduStatusReport)/2-8, n)
 	data, err := util.Bytes(pduStatusReport)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, data, octets)
 }
