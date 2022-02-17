@@ -2,7 +2,7 @@ AT
 ===
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/xlab/at.svg)](https://pkg.go.dev/github.com/xlab/at)
-[![Build Status](https://github.com/xlab/at/workflows/go/badge.svg?branch=master)](https://github.com/xlab/at/actions)
+[![Build Status](https://github.com/xlab/at/workflows/tests/badge.svg?branch=master)](https://github.com/xlab/at/actions)
 [![Coverage](https://codecov.io/gh/xlab/at/branch/master/graph/badge.svg)](https://codecov.io/gh/xlab/at)
 
 
