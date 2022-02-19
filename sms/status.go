@@ -1,5 +1,6 @@
 package sms
 
+// StatusCategory
 type StatusCategory byte
 
 var StatusCategories = struct {
@@ -10,19 +11,35 @@ var StatusCategories = struct {
 
 	Unknown StatusCategory // Status code is either reserved or SC-specific
 }{
-	0x00, 0x01, 0x02, 0x04,
+	0x00, 0x01, 0x02, 0x03,
 	0x80, // reserved
 }
 
-// Status represents the status of a SMS-STATUS-REPORT TPDU.
+// Status represents the status of a SMS-STATUS-REPORT TPDU, as specified
+// in 3GPP TS 23.040 version 16.0.0 release 16, section 9.2.3.15.
 type Status byte
 
-// StatusCodes represents possible values for the Status field in
-// SMS-STATUS-REPORT TPDUs, as specified in 3GPP TS 23.040 version 16.0.0
-// release 16, section 9.2.3.15.
-var StatusCodes = struct {
-	Category func(Status) StatusCategory
+// Catogory returns the kind of status, laid out in 3GPP TS 23.040 version
+// 16.0.0 release 16, section 9.2.3.15.
+//
+// If s represents a reserved or Service Centre-specific status, Category
+// will return StatusCategories.Unknown.
+func (s Status) Category() StatusCategory {
+	switch {
+	case 0b0000_0011 <= s && s <= 0b0001_1111,
+		0b0010_0110 <= s && s <= 0b0011_1111,
+		0b0100_1010 <= s && s <= 0b0101_1111,
+		0b0110_0110 <= s && s <= 0b1111_1111:
+		return StatusCategories.Unknown
+	default:
+		// category is encoded in bits 6 and 5
+		return StatusCategory(s >> 5 & 0x03)
+	}
+}
 
+// StatusCodes represents possible values for the Status field in
+// SMS-STATUS-REPORT TPDUs.
+var StatusCodes = struct {
 	// Transaction complete status codes
 	CompletedReceived Status
 	CompletedForwared Status
@@ -56,20 +73,6 @@ var StatusCodes = struct {
 	FinalQualityOfServiceNotAvailable Status
 	FinalErrorInRecipient             Status
 }{
-	func(s Status) StatusCategory {
-		switch {
-		case 0b0000_0011 >= s && s <= 0b0001_0000,
-			0b0010_0110 >= s && s <= 0b0011_1111,
-			0b0100_1010 >= s && s <= 0b0101_1111,
-			0b0110_0110 >= s && s <= 0b1111_1111:
-			// either reserved or SC-specific. in either case, we don't know
-			return StatusCategories.Unknown
-		default:
-			// category is encoded in bits 6 and 5
-			return StatusCategory(s >> 5 & 0x03)
-		}
-	},
-
 	0b0000_0000, // Short message received by the SME
 	0b0000_0001, // Short message forwarded by the SC to the SME but the SC is unable to confirm delivery
 	0b0000_0010, // Short message replaced by the SC

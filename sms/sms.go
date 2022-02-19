@@ -35,7 +35,7 @@ type Message struct {
 
 	// Advanced
 	MessageReference         byte
-	Status                   byte
+	Status                   Status
 	ReplyPathExists          bool
 	UserDataStartsWithHeader bool
 	StatusReportIndication   bool
@@ -335,7 +335,7 @@ func (s *Message) decodeStatusReport(data []byte) (n int, err error) {
 		}
 	}
 	s.StatusReportQualificator = sms.StatusReportQualificator
-	s.Status = sms.Status
+	s.Status = Status(sms.Status)
 	s.Address.ReadFrom(sms.DestinationAddress[1:])
 	s.Encoding = Encoding(sms.DataCodingScheme)
 	s.ServiceCenterTime.ReadFrom(sms.ServiceCentreTimestamp)
