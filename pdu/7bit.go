@@ -25,26 +25,41 @@ const (
 // ErrUnexpectedByte happens when someone tries to decode non GSM 7-bit encoded string.
 var ErrUnexpectedByte = errors.New("7bit decode: met an unexpected byte")
 
-// Encode7Bit encodes the given UTF-8 text into GSM 7-bit (3GPP TS 23.038) encoding with packing.
+// Is7BitEncodable reports whether s can be encoded using GSM 7-bit
+// encoding with default alphabet, without replacing or omitting characters.
+func Is7BitEncodable(s string) bool {
+	for _, r := range s {
+		if i := gsmTable.Index(r); i < 0 {
+			if gsmEscapes.to7Bit(r) == byte(unknown) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// Encode7Bit encodes the given UTF-8 text into GSM 7-bit (3GPP TS 23.038)
+// encoding with packing. Invalid characters outside the 7-bit encoding
+// and shift table are replaced with "?".
 func Encode7Bit(str string) []byte {
 	raw7 := make([]byte, 0, len(str))
 	for _, r := range str {
-		i := gsmTable.Index(r)
-		if i < 0 {
+		if i := gsmTable.Index(r); i >= 0 {
+			raw7 = append(raw7, byte(i))
+		} else {
 			b := gsmEscapes.to7Bit(r)
-			if b != byte(unknown) {
-				raw7 = append(raw7, Esc, b)
-			} else {
+			if b == byte(unknown) {
 				raw7 = append(raw7, b)
+			} else {
+				raw7 = append(raw7, Esc, b)
 			}
-			continue
 		}
-		raw7 = append(raw7, byte(i))
 	}
 	return pack7Bit(raw7)
 }
 
-// Decode7Bit decodes the given GSM 7-bit packed octet data (3GPP TS 23.038) into a UTF-8 encoded string.
+// Decode7Bit decodes the given GSM 7-bit packed octet data (3GPP TS 23.038)
+// into an UTF-8 encoded string.
 func Decode7Bit(octets []byte) (str string, err error) {
 	raw7 := unpack7Bit(octets)
 	var escaped bool
@@ -188,8 +203,8 @@ var gsmEscapes = escapeTable{
 type runeTable [0x80]rune
 
 func (rt *runeTable) Index(r rune) int {
-	for i := range rt {
-		if rt[i] == r {
+	for i, c := range rt {
+		if c == r {
 			return i
 		}
 	}
