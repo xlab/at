@@ -51,7 +51,7 @@ var (
 		Type:                 MessageTypes.Deliver,
 		Address:              "+5561999256868",
 		ServiceCenterAddress: "+550101102010",
-		ServiceCenterTime:    parseTimestamp("2017-09-22T21:24:51+03:00"),
+		ServiceCenterTime:    parseTimestamp("2017-09-22T21:24:51-03:00"),
 	}
 	smsSubmitUCS2 = Message{
 		Text:                 "Этот абонент звонил вам 2 раза. Последний -  26 июня в 21:35",
@@ -82,6 +82,8 @@ var (
 	}
 )
 
+// parseTimestamp, a test helper, parses an RFC3339-formatted date into
+// a Timestamp. If the input is malformed, parseTimestamp panics.
 func parseTimestamp(timetamp string) Timestamp {
 	date, err := time.Parse(time.RFC3339, timetamp)
 	if err != nil {
