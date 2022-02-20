@@ -33,10 +33,12 @@ func (t Timestamp) PDU() []byte {
 	if negativeOffset {
 		offset = -offset
 	}
-	quarters := offset / int(time.Hour/time.Second) * 4
+
+	const secPerQuarter = int(15 * time.Minute / time.Second)
+	quarters := offset / secPerQuarter
 
 	octets := []byte{
-		/* YY */ pdu.Swap(pdu.Encode((year % 1000))),
+		/* YY */ pdu.Swap(pdu.Encode(year % 1000)),
 		/* MM */ pdu.Swap(pdu.Encode(int(month))),
 		/* DD */ pdu.Swap(pdu.Encode(day)),
 		/* hh */ pdu.Swap(pdu.Encode(hour)),
@@ -45,7 +47,7 @@ func (t Timestamp) PDU() []byte {
 		/* zz */ pdu.Swap(pdu.Encode(quarters)),
 	}
 	if negativeOffset {
-		octets[6] |= 0x04
+		octets[6] |= 0x08
 	}
 
 	return octets
@@ -62,7 +64,7 @@ func (t *Timestamp) ReadFrom(octets []byte) {
 	minute := pdu.Decode(pdu.Swap(octets[4]))
 	second := pdu.Decode(pdu.Swap(octets[5]))
 
-	negativeOffset := (octets[6] & 0x04) != 0
+	negativeOffset := (octets[6] & 0x08) != 0
 	quarters := pdu.Decode(pdu.Swap(octets[6] & 0xF7))
 	offset := time.Duration(quarters) * 15 * time.Minute
 
