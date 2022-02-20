@@ -16,6 +16,7 @@ var (
 	ErrIncorrectSize                 = errors.New("sms: decoded incorrect size of field")
 	ErrNonRelative                   = errors.New("sms: non-relative validity period support is not implemented yet")
 	ErrIncorrectUserDataHeaderLength = errors.New("sms: incorrect user data header length ")
+	ErrUnsupportedTypeOfNumber       = errors.New("sms: unsupported type-of-number")
 )
 
 // Message represents an SMS message, including some advanced fields. This
