@@ -8,6 +8,19 @@ import (
 	"github.com/xlab/at/util"
 )
 
+func TestIs7BitEncodable(t *testing.T) {
+	t.Parallel()
+
+	for _, r := range gsmTable {
+		ok := Is7BitEncodable(string(r))
+		assert.True(t, ok, "'%c' should be 7bit-encodable, but wasn't", r)
+	}
+	for _, esc := range gsmEscapes {
+		ok := Is7BitEncodable(string(esc.to))
+		assert.True(t, ok, "'%c' should be 7bit-encodable, but wasn't", esc.to)
+	}
+}
+
 func TestEncode7Bit(t *testing.T) {
 	t.Parallel()
 
