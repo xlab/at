@@ -122,7 +122,7 @@ func (m *modeReport) Parse(str string) (err error) {
 	if mode, err = strconv.ParseUint(fields[0], 10, 8); err != nil {
 		return
 	}
-	if submode, err = strconv.ParseUint(fields[0], 10, 8); err != nil {
+	if submode, err = strconv.ParseUint(fields[1], 10, 8); err != nil {
 		return
 	}
 	m.Mode = SystemModes.Resolve(int(mode))
