@@ -3,7 +3,6 @@ package at
 import (
 	"bufio"
 	"errors"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -12,8 +11,8 @@ import (
 	"github.com/xlab/at/sms"
 )
 
-// Timeout to close the connection in case of modem is being not responsive at all.
-const Timeout = time.Minute
+// DefaultTimeout to close the connection in case of modem is being not responsive at all.
+const DefaultTimeout = time.Minute
 
 // <CR><LF> sequence.
 const Sep = "\r\n"
@@ -55,6 +54,8 @@ type Device struct {
 	State *DeviceState
 	// Commands is a profile that provides implementation of Init and the other commands.
 	Commands DeviceProfile
+	// Timeout to override the default timeout (1m)
+	Timeout time.Duration
 
 	cmdPort    *os.File
 	notifyPort *os.File
@@ -91,41 +92,27 @@ func (d *Device) Closed() <-chan struct{} {
 // a prompt should be received first (i.e. when sending SMS, the PDU should be
 // entered after the device replied with '>') and then the second part of payload
 // should be sent (the second payload will be sent using Send).
-func (d *Device) sendInteractive(part1, part2 string, prompt byte) (result string, err error) {
-	t := time.NewTimer(Timeout)
-	defer t.Stop()
+func (d *Device) sendInteractive(part1, part2 string, prompt byte) (reply string, err error) {
 
-	exitInteractive := func() { d.cmdPort.Write([]byte{pdu.Esc}) }
-
-	stop := make(chan struct{})
-	defer close(stop)
-	go func() {
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-			exitInteractive()
-			d.cmdPort.Write([]byte(KillCmd + Sep))
+	d.withTimeout(func() error {
+		_, err = d.cmdPort.Write([]byte(part1 + Sep))
+		if err != nil {
+			return err
 		}
-	}()
 
-	_, err = d.cmdPort.Write([]byte(part1 + Sep))
-	if err != nil {
-		return
-	}
+		// finally: send control character to exit interactive mode
+		defer d.cmdPort.Write([]byte{pdu.Esc})
 
-	buf := bufio.NewReader(d.cmdPort)
-	line, err := buf.ReadString(prompt)
-	if err != nil || !strings.HasSuffix(line, string(prompt)) {
-		exitInteractive()
-		return
-	}
+		buf := bufio.NewReader(d.cmdPort)
+		line, err := buf.ReadString(prompt)
 
-	reply, err := d.Send(part2 + Sub)
-	if err != nil {
-		exitInteractive()
-		return
-	}
+		if err != nil || !strings.HasSuffix(line, string(prompt)) {
+			return err
+		}
+
+		reply, err = d.Send(part2 + Sub)
+		return err
+	})
 
 	return reply, nil
 }
@@ -154,68 +141,80 @@ func (d *Device) Send(req string) (reply string, err error) {
 	if err = d.sanityCheck(true); err != nil {
 		return
 	}
-	t := time.NewTimer(Timeout)
-	defer t.Stop()
 
-	stop := make(chan struct{})
-	defer close(stop)
-	go func() {
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-			d.cmdPort.Write([]byte(KillCmd + Sep))
+	d.withTimeout(func() error {
+		_, err := d.cmdPort.Write([]byte(req + Sep))
+		if err != nil {
+			return err
 		}
-	}()
 
-	_, err = d.cmdPort.Write([]byte(req + Sep))
-	if err != nil {
-		return
-	}
-
-	var line string
-	buf := bufio.NewReader(d.cmdPort)
-	if line, err = buf.ReadString('\r'); err != nil {
-		return "", ErrWriteFailed
-	}
-	text := strings.TrimSpace(line)
-	if !strings.HasPrefix(req, text) {
-		return "", ErrWriteFailed
-	}
-	t.Reset(Timeout)
-
-	var done bool
-	for !done {
+		var line string
+		buf := bufio.NewReader(d.cmdPort)
 		if line, err = buf.ReadString('\r'); err != nil {
-			err = io.EOF
-			break
+			return err
 		}
 		text := strings.TrimSpace(line)
-		if len(text) < 1 {
-			continue
+		if !strings.HasPrefix(req, text) {
+			return err
 		}
-		switch opt := FinalResults.Resolve(text); opt {
-		case FinalResults.Ok, FinalResults.Noop:
-			done = true
-		case FinalResults.Timeout:
-			err = ErrTimeout
-			done = true
-		case FinalResults.CmeError, FinalResults.CmsError:
-			err = errors.New(text)
-			done = true
-		case FinalResults.Error, FinalResults.NotSupported,
-			FinalResults.TooManyParameters, FinalResults.NoCarrier:
-			err = errors.New(opt.Description)
-			done = true
-		default:
-			if len(reply) > 0 {
-				reply += "\n"
+
+		var done bool
+		for !done {
+			if line, err = buf.ReadString('\r'); err != nil {
+				break
 			}
-			reply += text
-			t.Reset(Timeout)
+			text := strings.TrimSpace(line)
+			if len(text) < 1 {
+				continue
+			}
+			switch opt := FinalResults.Resolve(text); opt {
+			case FinalResults.Ok, FinalResults.Noop:
+				done = true
+			case FinalResults.Timeout:
+				err = ErrTimeout
+				done = true
+			case FinalResults.CmeError, FinalResults.CmsError:
+				err = errors.New(text)
+				done = true
+			case FinalResults.Error, FinalResults.NotSupported,
+				FinalResults.TooManyParameters, FinalResults.NoCarrier:
+				err = errors.New(opt.Description)
+				done = true
+			default:
+				if len(reply) > 0 {
+					reply += "\n"
+				}
+				reply += text
+			}
 		}
+
+		return err
+	})
+
+	return
+}
+
+// runs the passed method with a timeout set on the cmdPort
+func (d *Device) withTimeout(f func() error) error {
+	timeout := d.Timeout
+	if timeout == 0 {
+		timeout = DefaultTimeout
 	}
-	return reply, err
+
+	// enable deadline
+	d.cmdPort.SetDeadline(time.Now().Add(timeout))
+
+	err := f()
+
+	// disable deadline
+	d.cmdPort.SetDeadline(time.Time{})
+
+	if err != nil && os.IsTimeout(err) {
+		// reset connection on timeouts
+		d.cmdPort.Write([]byte(KillCmd + Sep))
+	}
+
+	return err
 }
 
 // Watch starts a monitoring process that will wait for events
