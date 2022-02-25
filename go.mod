@@ -2,10 +2,7 @@ module github.com/xlab/at
 
 go 1.17
 
-require (
-	github.com/stretchr/testify v1.7.0
-	github.com/tarm/goserial v0.0.0-20151007205400-b3440c3c6355
-)
+require github.com/stretchr/testify v1.7.0
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
