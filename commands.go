@@ -3,7 +3,6 @@ package at
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/xlab/at/pdu"
@@ -18,9 +17,9 @@ type DeviceProfile interface {
 	Init(*Device) error
 	CMGS(length int, octets []byte) (err error)
 	CUSD(reporting Opt, octets []byte, enc Encoding) (err error)
-	CMGR(index uint64) (octets []byte, err error)
-	CMGD(index uint64, option Opt) (err error)
-	CMGL(flag Opt) (octets map[uint64][]byte, err error)
+	CMGR(index uint16) (octets []byte, err error)
+	CMGD(index uint16, option Opt) (err error)
+	CMGL(flag Opt) (octets map[uint16][]byte, err error)
 	CMGF(text bool) (err error)
 	CNMI(mode, mt, bm, ds, bfr int) (err error)
 	CPMS(mem1 StringOpt, mem2 StringOpt, mem3 StringOpt) (err error)
@@ -82,7 +81,7 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 	if err = p.CNMI(1, 1, 0, 0, 0); err != nil {
 		return errors.New("at init: unable to turn on message notifications")
 	}
-	var octets map[uint64][]byte
+	var octets map[uint16][]byte
 	if octets, err = p.CMGL(MessageFlags.Any); err != nil {
 		return errors.New("at init: unable to check message inbox")
 	}
@@ -101,11 +100,10 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 
 type signalStrengthReport uint64
 
-func (s *signalStrengthReport) Parse(str string) (err error) {
-	var u uint64
-	u, err = strconv.ParseUint(str, 10, 8)
+func (s *signalStrengthReport) Parse(str string) error {
+	u, err := parseUint8(str)
 	*s = signalStrengthReport(u)
-	return
+	return err
 }
 
 type modeReport struct {
@@ -118,13 +116,17 @@ func (m *modeReport) Parse(str string) (err error) {
 	if len(fields) < 2 {
 		return ErrParseReport
 	}
-	var mode, submode uint64
-	if mode, err = strconv.ParseUint(fields[0], 10, 8); err != nil {
-		return
+
+	mode, err := parseUint8(fields[0])
+	if err != nil {
+		return err
 	}
-	if submode, err = strconv.ParseUint(fields[1], 10, 8); err != nil {
-		return
+
+	submode, err := parseUint8(fields[1])
+	if err != nil {
+		return err
 	}
+
 	m.Mode = SystemModes.Resolve(int(mode))
 	m.Submode = SystemSubmodes.Resolve(int(submode))
 	return
@@ -133,38 +135,42 @@ func (m *modeReport) Parse(str string) (err error) {
 type simStateReport Opt
 
 func (s *simStateReport) Parse(str string) (err error) {
-	var o uint64
-	if o, err = strconv.ParseUint(str, 10, 8); err != nil {
-		return
+	o, err := parseUint8(str)
+	if err != nil {
+		return err
 	}
+
 	*s = simStateReport(SimStates.Resolve(int(o)))
-	return
+	return nil
 }
 
 type serviceStateReport Opt
 
-func (s *serviceStateReport) Parse(str string) (err error) {
-	var o uint64
-	if o, err = strconv.ParseUint(str, 10, 8); err != nil {
-		return
+func (s *serviceStateReport) Parse(str string) error {
+	i, err := parseUint8(str)
+	if err != nil {
+		return err
 	}
-	*s = serviceStateReport(ServiceStates.Resolve(int(o)))
-	return
+
+	*s = serviceStateReport(ServiceStates.Resolve(int(i)))
+	return nil
 }
 
 type bootHandshakeReport uint64
 
-func (b *bootHandshakeReport) Parse(str string) (err error) {
+func (b *bootHandshakeReport) Parse(str string) error {
 	fields := strings.Split(str, ",")
 	if len(fields) < 1 {
 		return ErrParseReport
 	}
-	var key uint64
-	if key, err = strconv.ParseUint(fields[0], 10, 8); err != nil {
-		return
+
+	key, err := parseUint8(fields[0])
+	if err != nil {
+		return err
 	}
+
 	*b = bootHandshakeReport(key)
-	return
+	return nil
 }
 
 // Ussd type represents the USSD query string.
@@ -188,7 +194,7 @@ func (u *Ussd) String() string {
 }
 
 type ussdReport struct {
-	N      uint64
+	N      uint8
 	Octets []byte
 	Enc    Encoding
 }
@@ -198,14 +204,14 @@ func (r *ussdReport) Parse(str string) (err error) {
 	if len(fields) < 3 {
 		return ErrParseReport
 	}
-	if r.N, err = strconv.ParseUint(fields[0], 10, 8); err != nil {
+	if r.N, err = parseUint8(fields[0]); err != nil {
 		return
 	}
 	if r.Octets, err = util.Bytes(strings.Trim(fields[1], `"`)); err != nil {
 		return
 	}
-	var e uint64
-	if e, err = strconv.ParseUint(fields[2], 10, 8); err != nil {
+	var e uint8
+	if e, err = parseUint8(fields[2]); err != nil {
 		return
 	}
 	r.Enc = Encoding(e)
@@ -221,7 +227,7 @@ func (p *DefaultProfile) CUSD(reporting Opt, octets []byte, enc Encoding) (err e
 
 type messageReport struct {
 	Memory StringOpt
-	Index  uint64
+	Index  uint16
 }
 
 func (m *messageReport) Parse(str string) (err error) {
@@ -232,14 +238,14 @@ func (m *messageReport) Parse(str string) (err error) {
 	if m.Memory = MemoryTypes.Resolve(strings.Trim(fields[0], `"`)); m.Memory == UnknownStringOpt {
 		return ErrParseReport
 	}
-	if m.Index, err = strconv.ParseUint(fields[1], 10, 16); err != nil {
+	if m.Index, err = parseUint16(fields[1]); err != nil {
 		return
 	}
 	return
 }
 
 // CMGR sends AT+CMGR with the given index to the device and returns the message contents.
-func (p *DefaultProfile) CMGR(index uint64) (octets []byte, err error) {
+func (p *DefaultProfile) CMGR(index uint16) (octets []byte, err error) {
 	req := fmt.Sprintf(`AT+CMGR=%d`, index)
 	reply, err := p.dev.Send(req)
 	if err != nil {
@@ -255,7 +261,7 @@ func (p *DefaultProfile) CMGR(index uint64) (octets []byte, err error) {
 
 // CMGD sends AT+CMGD with the given index and option to the device. Option defines the mode
 // in which messages will be deleted. The default mode is to delete by index.
-func (p *DefaultProfile) CMGD(index uint64, option Opt) (err error) {
+func (p *DefaultProfile) CMGD(index uint16, option Opt) (err error) {
 	req := fmt.Sprintf(`AT+CMGD=%d,%d`, index, option.ID)
 	_, err = p.dev.Send(req)
 	return
@@ -294,7 +300,7 @@ func (p *DefaultProfile) CMGF(text bool) (err error) {
 // CMGL sends AT+CMGL with the given filtering flag to the device and then parses
 // the list of received messages that match their filter. See MessageFlags for the
 // list of supported filters.
-func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint64][]byte, err error) {
+func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint16][]byte, err error) {
 	req := fmt.Sprintf(`AT+CMGL=%d`, flag.ID)
 	reply, err := p.dev.Send(req)
 	if err != nil {
@@ -304,14 +310,14 @@ func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint64][]byte, err error) {
 	if len(lines) < 2 {
 		return
 	}
-	octets = make(map[uint64][]byte)
+	octets = make(map[uint16][]byte)
 	for i := 0; i < len(lines); i += 2 {
 		header := strings.TrimPrefix(lines[i], `+CMGL: `)
 		fields := strings.Split(header, ",")
 		if len(fields) < 4 {
 			return nil, ErrParseReport
 		}
-		n, err := strconv.ParseUint(fields[0], 10, 16)
+		n, err := parseUint16(fields[0])
 		if err != nil {
 			return nil, ErrParseReport
 		}
@@ -378,7 +384,7 @@ func (s *SystemInfoReport) Parse(str string) (err error) {
 	}
 
 	fetch := func(str string, field *Opt, resolver func(id int) Opt) error {
-		if n, err := strconv.ParseUint(str, 10, 8); err != nil {
+		if n, err := parseUint8(str); err != nil {
 			return err
 		} else if opt := resolver(int(n)); opt == UnknownOpt {
 			return errors.New("resolver: unknown opt")
