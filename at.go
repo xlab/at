@@ -4,16 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"os"
 	"strings"
 	"time"
 
-	serial "github.com/tarm/goserial"
 	"github.com/xlab/at/pdu"
 	"github.com/xlab/at/sms"
 )
-
-// BaudRate defines the default speed of serial connection.
-const BaudRate = 115200
 
 // Timeout to close the connection in case of modem is being not responsive at all.
 const Timeout = time.Minute
@@ -59,8 +56,8 @@ type Device struct {
 	// Commands is a profile that provides implementation of Init and the other commands.
 	Commands DeviceProfile
 
-	cmdPort    io.ReadWriteCloser
-	notifyPort io.ReadWriteCloser
+	cmdPort    *os.File
+	notifyPort *os.File
 
 	messages chan *sms.Message
 	ussd     chan Ussd
@@ -363,17 +360,12 @@ func (d *Device) handleReport(str string) (err error) {
 // Open is used to open serial ports of the device. This should be used first.
 // The method returns error if open was not succeed, i.e. if device is absent.
 func (d *Device) Open() (err error) {
-	if d.cmdPort, err = serial.OpenPort(&serial.Config{
-		Name: d.CommandPort,
-		Baud: BaudRate,
-	}); err != nil {
+	if d.cmdPort, err = os.OpenFile(d.CommandPort, os.O_RDWR, 0); err != nil {
 		return
 	}
-	if len(d.NotifyPort) > 0 && d.NotifyPort != d.CommandPort {
-		if d.notifyPort, err = serial.OpenPort(&serial.Config{
-			Name: d.NotifyPort,
-			Baud: BaudRate,
-		}); err != nil {
+	if d.NotifyPort != "" && d.NotifyPort != d.CommandPort {
+		if d.notifyPort, err = os.OpenFile(d.NotifyPort, os.O_RDWR, 0); err != nil {
+			d.cmdPort.Close()
 			return
 		}
 	}
