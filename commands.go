@@ -19,7 +19,7 @@ type DeviceProfile interface {
 	CUSD(reporting Opt, octets []byte, enc Encoding) (err error)
 	CMGR(index uint16) (octets []byte, err error)
 	CMGD(index uint16, option Opt) (err error)
-	CMGL(flag Opt) (octets map[uint16][]byte, err error)
+	CMGL(flag Opt) (octets []MessageSlot, err error)
 	CMGF(text bool) (err error)
 	CNMI(mode, mt, bm, ds, bfr int) (err error)
 	CPMS(mem1 StringOpt, mem2 StringOpt, mem3 StringOpt) (err error)
@@ -42,6 +42,7 @@ func DeviceE173() DeviceProfile {
 // in any other custom implementation of the DeviceProfile interface.
 type DefaultProfile struct {
 	dev *Device
+	DeviceProfile
 }
 
 // Init invokes a set of methods that will make the initial setup of the modem.
@@ -81,19 +82,25 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 	if err = p.CNMI(1, 1, 0, 0, 0); err != nil {
 		return errors.New("at init: unable to turn on message notifications")
 	}
-	var octets map[uint16][]byte
-	if octets, err = p.CMGL(MessageFlags.Any); err != nil {
-		return errors.New("at init: unable to check message inbox")
+
+	return p.FetchInbox()
+}
+
+func (p *DefaultProfile) FetchInbox() error {
+	slots, err := p.CMGL(MessageFlags.Any)
+	if err != nil {
+		return fmt.Errorf("unable to check message inbox: %w", err)
 	}
-	for n, oct := range octets {
+
+	for i := range slots {
 		var msg sms.Message
-		if _, err := msg.ReadFrom(oct); err != nil {
-			return errors.New("at init: error while parsing message inbox")
+		if _, err := msg.ReadFrom(slots[i].Payload); err != nil {
+			return fmt.Errorf("error while parsing message inbox: %w", err)
 		}
-		if err := p.CMGD(n, DeleteOptions.Index); err != nil {
-			return errors.New("at init: error while cleaning message inbox")
+		if err := p.CMGD(slots[i].Index, DeleteOptions.Index); err != nil {
+			return fmt.Errorf("error while cleaning message inbox: %w", err)
 		}
-		d.messages <- &msg
+		p.dev.messages <- &msg
 	}
 	return nil
 }
@@ -297,10 +304,15 @@ func (p *DefaultProfile) CMGF(text bool) (err error) {
 	return
 }
 
+type MessageSlot struct {
+	Index   uint16
+	Payload []byte
+}
+
 // CMGL sends AT+CMGL with the given filtering flag to the device and then parses
 // the list of received messages that match their filter. See MessageFlags for the
 // list of supported filters.
-func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint16][]byte, err error) {
+func (p *DefaultProfile) CMGL(flag Opt) (result []MessageSlot, err error) {
 	req := fmt.Sprintf(`AT+CMGL=%d`, flag.ID)
 	reply, err := p.dev.Send(req)
 	if err != nil {
@@ -310,7 +322,7 @@ func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint16][]byte, err error) {
 	if len(lines) < 2 {
 		return
 	}
-	octets = make(map[uint16][]byte)
+
 	for i := 0; i < len(lines); i += 2 {
 		header := strings.TrimPrefix(lines[i], `+CMGL: `)
 		fields := strings.Split(header, ",")
@@ -325,7 +337,11 @@ func (p *DefaultProfile) CMGL(flag Opt) (octets map[uint16][]byte, err error) {
 		if oct, err = util.Bytes(lines[i+1]); err != nil {
 			return nil, ErrParseReport
 		}
-		octets[n] = oct
+
+		result = append(result, MessageSlot{
+			Index:   n,
+			Payload: oct,
+		})
 	}
 	return
 }
