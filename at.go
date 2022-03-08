@@ -91,7 +91,7 @@ func (d *Device) Closed() <-chan struct{} {
 // a prompt should be received first (i.e. when sending SMS, the PDU should be
 // entered after the device replied with '>') and then the second part of payload
 // should be sent (the second payload will be sent using Send).
-func (d *Device) sendInteractive(part1, part2 string, prompt byte) (err error) {
+func (d *Device) sendInteractive(part1, part2 string, prompt byte) (result string, err error) {
 	t := time.NewTimer(Timeout)
 	defer t.Stop()
 
@@ -121,12 +121,13 @@ func (d *Device) sendInteractive(part1, part2 string, prompt byte) (err error) {
 		return
 	}
 
-	_, err = d.Send(part2 + Sub)
+	reply, err := d.Send(part2 + Sub)
 	if err != nil {
 		exitInteractive()
 		return
 	}
-	return nil
+
+	return reply, nil
 }
 
 // sanityCheck checks whether ports are opened and (if requested) that the initialization
@@ -434,8 +435,9 @@ func (d *Device) SendSMS(text string, address sms.PhoneNumber) (err error) {
 	}
 	n, octets, err := msg.PDU()
 	if err != nil {
-		return err
+		return
 	}
-	err = d.Commands.CMGS(n, octets)
+
+	_, err = d.Commands.CMGS(n, octets)
 	return
 }
