@@ -15,7 +15,7 @@ import (
 // Init should be called first.
 type DeviceProfile interface {
 	Init(*Device) error
-	CMGS(length int, octets []byte) (err error)
+	CMGS(length int, octets []byte) (byte, error)
 	CUSD(reporting Opt, octets []byte, enc Encoding) (err error)
 	CMGR(index uint16) (octets []byte, err error)
 	CMGD(index uint16, option Opt) (err error)
@@ -356,11 +356,26 @@ func (p *DefaultProfile) BOOT(token uint64) (err error) {
 
 // CMGS sends AT+CMGS with the given parameters to the device. This is used to send SMS
 // using the given PDU data. Length is a number of TPDU bytes.
-func (p *DefaultProfile) CMGS(length int, octets []byte) (err error) {
+// Returns the reference number of the sent message.
+func (p *DefaultProfile) CMGS(length int, octets []byte) (byte, error) {
 	part1 := fmt.Sprintf("AT+CMGS=%d", length)
 	part2 := fmt.Sprintf("%02X", octets)
-	err = p.dev.sendInteractive(part1, part2, byte('>'))
-	return
+	reply, err := p.dev.sendInteractive(part1, part2, byte('>'))
+
+	if err != nil {
+		return 0, err
+	}
+
+	if !strings.HasPrefix(reply, "+CMGS: ") {
+		return 0, fmt.Errorf("unable to get sequence number of reply '%s'", reply)
+	}
+
+	number, err := parseUint8(reply[7:])
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse sequence number of reply '%s': %w", reply, err)
+	}
+
+	return byte(number), nil
 }
 
 // SYSCFG sends AT^SYSCFG with the given parameters to the device.
