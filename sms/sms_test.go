@@ -20,8 +20,8 @@ var (
 		"003200200440043004370430002E0020041F043E0441043B04350434043D043804390020002D" +
 		"002000200032003600200438044E043D044F00200432002000320031003A00330035"
 
-	pduDeliverGsm7   = "07919762020033F1040B919762995696F0000041606291401561046379180E"
-	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA046379180E"
+	pduDeliverGsm7   = "07919762020033F1040B919762995696F0000041606291401561066379180E8200"
+	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA066379180E8200"
 	pduDeliverGsm7_2 = "0791551010010201040D91551699296568F80011719022124215293DD4B71C5E26BF" +
 		"41D3E6145476D3E5E573BD0C82BF40B59A2D96CBE564351BCE8603A164319D8CA6ABD540E432482673C172AED82DE502"
 
@@ -38,7 +38,7 @@ var (
 		ServiceCenterTime:    parseTimestamp("2014-06-26T21:36:30+04:00"),
 	}
 	smsDeliverGsm7 = Message{
-		Text:                 "crap",
+		Text:                 "crap Δ",
 		Encoding:             Encodings.Gsm7Bit,
 		Type:                 MessageTypes.Deliver,
 		Address:              "+79269965690",
@@ -63,7 +63,7 @@ var (
 		VPFormat:             ValidityPeriodFormats.Relative,
 	}
 	smsSubmitGsm7 = Message{
-		Text:                 "crap",
+		Text:                 "crap Δ",
 		Encoding:             Encodings.Gsm7Bit,
 		Type:                 MessageTypes.Submit,
 		Address:              "+79269965690",

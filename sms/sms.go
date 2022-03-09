@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"unicode/utf8"
 
 	"github.com/xlab/at/pdu"
 )
@@ -119,20 +120,11 @@ func (s *Message) encodeDeliver(buf *bytes.Buffer) (n int, err error) {
 	sms.ProtocolIdentifier = 0x00 // Short Message Type 0
 	sms.DataCodingScheme = byte(s.Encoding)
 	sms.ServiceCentreTimestamp = s.ServiceCenterTime.PDU()
-
-	var userData []byte
-	switch s.Encoding {
-	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
-		userData = pdu.Encode7Bit(s.Text)
-		sms.UserDataLength = byte(len(s.Text))
-	case Encodings.UCS2:
-		userData = pdu.EncodeUcs2(s.Text)
-		sms.UserDataLength = byte(len(userData))
-	default:
-		return 0, ErrUnknownEncoding
+	sms.UserData, sms.UserDataLength, err = s.encodedUserData()
+	if err != nil {
+		return 0, err
 	}
 
-	sms.UserData = userData
 	return buf.Write(sms.Bytes())
 }
 
@@ -165,19 +157,10 @@ func (s *Message) encodeSubmit(buf *bytes.Buffer) (n int, err error) {
 		return 0, ErrNonRelative
 	}
 
-	var userData []byte
-	switch s.Encoding {
-	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
-		userData = pdu.Encode7Bit(s.Text)
-		sms.UserDataLength = byte(len(s.Text))
-	case Encodings.UCS2:
-		userData = pdu.EncodeUcs2(s.Text)
-		sms.UserDataLength = byte(len(userData))
-	default:
-		return 0, ErrUnknownEncoding
+	sms.UserData, sms.UserDataLength, err = s.encodedUserData()
+	if err != nil {
+		return 0, err
 	}
-
-	sms.UserData = userData
 	return buf.Write(sms.Bytes())
 }
 
@@ -202,20 +185,11 @@ func (s *Message) encodeStatusReport(buf *bytes.Buffer) (n int, err error) {
 	sms.ServiceCentreTimestamp = s.ServiceCenterTime.PDU()
 	sms.DischargeTimestamp = s.DischargeTime.PDU()
 	sms.Status = byte(s.Status)
-
-	var userData []byte
-	switch s.Encoding {
-	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
-		userData = pdu.Encode7Bit(s.Text)
-		sms.UserDataLength = byte(len(s.Text))
-	case Encodings.UCS2:
-		userData = pdu.EncodeUcs2(s.Text)
-		sms.UserDataLength = byte(len(userData))
-	default:
-		return 0, ErrUnknownEncoding
+	sms.UserData, sms.UserDataLength, err = s.encodedUserData()
+	if err != nil {
+		return 0, err
 	}
 
-	sms.UserData = userData
 	return buf.Write(sms.Bytes())
 }
 
@@ -343,6 +317,21 @@ func (s *Message) decodeStatusReport(data []byte) (n int, err error) {
 	s.DischargeTime.ReadFrom(sms.DischargeTimestamp)
 	err = s.decodeUserData(sms.UserData, sms.UserDataLength)
 	return n, err
+}
+
+func (s *Message) encodedUserData() (userData []byte, length byte, err error) {
+	switch s.Encoding {
+	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
+		userData = pdu.Encode7Bit(s.Text)
+		length = byte(utf8.RuneCountInString(s.Text))
+	case Encodings.UCS2:
+		userData = pdu.EncodeUcs2(s.Text)
+		length = byte(len(userData))
+	default:
+		err = ErrUnknownEncoding
+	}
+
+	return
 }
 
 func (s *Message) decodeUserData(data []byte, dataLen byte) (err error) {

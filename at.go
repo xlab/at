@@ -424,13 +424,11 @@ func (d *Device) SendSMS(text string, address sms.PhoneNumber) (err error) {
 		VPFormat: sms.ValidityPeriodFormats.Relative,
 		VP:       sms.ValidityPeriod(24 * time.Hour * 4),
 	}
-	for _, w := range text {
-		// detected a double-width char
-		if w > 1 {
-			msg.Encoding = sms.Encodings.UCS2
-			break
-		}
+
+	if !pdu.Is7BitEncodable(text) {
+		msg.Encoding = sms.Encodings.UCS2
 	}
+
 	n, octets, err := msg.PDU()
 	if err != nil {
 		return
