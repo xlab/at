@@ -50,11 +50,11 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 	p.dev = d
 	p.dev.Send(NoopCmd) // kinda flush
 	if err = p.COPS(true, true); err != nil {
-		return errors.New("at init: unable to adjust the format of operator's name")
+		return fmt.Errorf("at init: unable to adjust the format of operator's name: %w", err)
 	}
 	var info *SystemInfoReport
 	if info, err = p.SYSINFO(); err != nil {
-		return errors.New("at init: unable to read system info")
+		return fmt.Errorf("at init: unable to read system info: %w", err)
 	}
 	p.dev.State = &DeviceState{
 		ServiceState:  info.ServiceState,
@@ -65,22 +65,22 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 		SimState:      info.SimState,
 	}
 	if p.dev.State.OperatorName, err = p.OperatorName(); err != nil {
-		return errors.New("at init: unable to read operator's name")
+		return fmt.Errorf("at init: unable to read operator's name: %w", err)
 	}
 	if p.dev.State.ModelName, err = p.ModelName(); err != nil {
-		return errors.New("at init: unable to read modem's model name")
+		return fmt.Errorf("at init: unable to read modem's model name: %w", err)
 	}
 	if p.dev.State.IMEI, err = p.IMEI(); err != nil {
-		return errors.New("at init: unable to read modem's IMEI code")
+		return fmt.Errorf("at init: unable to read modem's IMEI code: %w", err)
 	}
 	if err = p.CMGF(false); err != nil {
-		return errors.New("at init: unable to switch message format to PDU")
+		return fmt.Errorf("at init: unable to switch message format to PDU: %w", err)
 	}
 	if err = p.CPMS(MemoryTypes.NvRAM, MemoryTypes.NvRAM, MemoryTypes.NvRAM); err != nil {
-		return errors.New("at init: unable to set messages storage")
+		return fmt.Errorf("at init: unable to set messages storage: %w", err)
 	}
 	if err = p.CNMI(1, 1, 0, 0, 0); err != nil {
-		return errors.New("at init: unable to turn on message notifications")
+		return fmt.Errorf("at init: unable to turn on message notifications: %w", err)
 	}
 
 	return p.FetchInbox()
