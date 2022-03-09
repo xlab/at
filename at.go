@@ -94,8 +94,8 @@ func (d *Device) Closed() <-chan struct{} {
 // should be sent (the second payload will be sent using Send).
 func (d *Device) sendInteractive(part1, part2 string, prompt byte) (reply string, err error) {
 
-	d.withTimeout(func() error {
-		_, err = d.cmdPort.Write([]byte(part1 + Sep))
+	err = d.withTimeout(func() error {
+		_, err := d.cmdPort.Write([]byte(part1 + Sep))
 		if err != nil {
 			return err
 		}
@@ -104,9 +104,8 @@ func (d *Device) sendInteractive(part1, part2 string, prompt byte) (reply string
 		defer d.cmdPort.Write([]byte{pdu.Esc})
 
 		buf := bufio.NewReader(d.cmdPort)
-		line, err := buf.ReadString(prompt)
-
-		if err != nil || !strings.HasSuffix(line, string(prompt)) {
+		reply, err = buf.ReadString(prompt)
+		if err != nil {
 			return err
 		}
 
@@ -114,7 +113,7 @@ func (d *Device) sendInteractive(part1, part2 string, prompt byte) (reply string
 		return err
 	})
 
-	return reply, nil
+	return reply, err
 }
 
 // sanityCheck checks whether ports are opened and (if requested) that the initialization
@@ -142,7 +141,7 @@ func (d *Device) Send(req string) (reply string, err error) {
 		return
 	}
 
-	d.withTimeout(func() error {
+	err = d.withTimeout(func() error {
 		_, err := d.cmdPort.Write([]byte(req + Sep))
 		if err != nil {
 			return err
