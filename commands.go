@@ -21,6 +21,8 @@ type DeviceProfile interface {
 	CMGD(index uint16, option Opt) (err error)
 	CMGL(flag Opt) (octets []MessageSlot, err error)
 	CMGF(text bool) (err error)
+	CLIP(text bool) (err error)
+	CHUP() (err error)
 	CNMI(mode, mt, bm, ds, bfr int) (err error)
 	CPMS(mem1 StringOpt, mem2 StringOpt, mem3 StringOpt) (err error)
 	BOOT(token uint64) (err error)
@@ -81,6 +83,9 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 	}
 	if err = p.CNMI(1, 1, 0, 0, 0); err != nil {
 		return fmt.Errorf("at init: unable to turn on message notifications: %w", err)
+	}
+	if err = p.CLIP(true); err != nil {
+		return fmt.Errorf("at init: unable to turn on calling party ID notifications: %w", err)
 	}
 
 	return p.FetchInbox()
@@ -232,6 +237,35 @@ func (p *DefaultProfile) CUSD(reporting Opt, octets []byte, enc Encoding) (err e
 	return
 }
 
+type callerIDReport struct {
+	CallerID   string
+	IDType     Opt
+	IDValidity Opt
+}
+
+func (c *callerIDReport) Parse(str string) (err error) {
+	fields := strings.Split(str, ",")
+	if len(fields) != 6 {
+		return ErrParseReport
+	}
+
+	c.CallerID = strings.Trim(fields[0], "\"")
+
+	var t uint8
+	if t, err = parseUint8(fields[1]); err != nil {
+		return
+	}
+	c.IDType = CallerIDTypes.Resolve(int(t))
+
+	var v uint8
+	if v, err = parseUint8(fields[5]); err != nil {
+		return
+	}
+	c.IDType = CallerIDTypes.Resolve(int(v))
+
+	return nil
+}
+
 type messageReport struct {
 	Memory StringOpt
 	Index  uint16
@@ -300,6 +334,26 @@ func (p *DefaultProfile) CMGF(text bool) (err error) {
 		flag = 1
 	}
 	req := fmt.Sprintf(`AT+CMGF=%d`, flag)
+	_, err = p.dev.Send(req)
+	return
+}
+
+// CLIP sends AT+CLIP with the given value to the device. It toggles
+// the mode of periodic calling party ID notification
+func (p *DefaultProfile) CLIP(text bool) (err error) {
+	var flag int
+	if text {
+		flag = 1
+	}
+	req := fmt.Sprintf(`AT+CLIP=%d`, flag)
+	_, err = p.dev.Send(req)
+	return
+}
+
+// CHUP sends ATH+CHUP to the device. It hangs up
+// an active incoming call
+func (p *DefaultProfile) CHUP() (err error) {
+	req := "ATH+CHUP"
 	_, err = p.dev.Send(req)
 	return
 }

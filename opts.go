@@ -310,6 +310,7 @@ var UssdResultReporting = struct {
 var reports = stringOpts{
 	{"+CUSD:", "USSD reply"},
 	{"+CMTI:", "Incoming SMS"},
+	{"+CLIP:", "Incoming Caller ID"},
 	{"^RSSI:", "Signal strength"},
 	{"^BOOT:", "Boot handshake"},
 	{"^MODE:", "System mode"},
@@ -330,11 +331,12 @@ var Reports = struct {
 	ServiceState   StringOpt
 	SimState       StringOpt
 	Stin           StringOpt
+	CallerID       StringOpt
 }{
 	func(str string) StringOpt { return reports.Resolve(str) },
 
 	reports[0], reports[1], reports[2], reports[3],
-	reports[4], reports[5], reports[6], reports[7],
+	reports[4], reports[5], reports[6], reports[7], reports[8],
 }
 
 var mem = stringOpts{
@@ -402,4 +404,40 @@ var MessageFlags = struct {
 	func(id int) Opt { return resultReporting.Resolve(id) },
 
 	msgFlags[0], msgFlags[1], msgFlags[2], msgFlags[3], msgFlags[4],
+}
+
+var callerIDType = optMap{
+	129: Opt{129, "Network Specific Caller ID"},
+	145: Opt{145, "International Caller ID"},
+}
+
+// CallerIDTypes represent the possible caller id types.
+var CallerIDTypes = struct {
+	Resolve func(int) Opt
+
+	NetworkSpecific Opt
+	International   Opt
+}{
+	func(id int) Opt { return callerIDType.Resolve(id) },
+
+	callerIDType[129], callerIDType[145],
+}
+
+var callerIDValidity = optMap{
+	0: Opt{0, "Valid"},
+	1: Opt{1, "Rejected by calling party"},
+	2: Opt{2, "Denied by network"},
+}
+
+// CallerIDValidityStates represent the possible caller id validity states.
+var CallerIDValidityStates = struct {
+	Resolve func(int) Opt
+
+	Valid    Opt
+	Rejected Opt
+	Denied   Opt
+}{
+	func(id int) Opt { return callerIDValidity.Resolve(id) },
+
+	callerIDValidity[0], callerIDValidity[1], callerIDValidity[2],
 }
