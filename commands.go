@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/xlab/at/calls"
 	"github.com/xlab/at/pdu"
 	"github.com/xlab/at/sms"
 	"github.com/xlab/at/util"
@@ -264,6 +265,14 @@ func (c *callerIDReport) Parse(str string) (err error) {
 	c.IDType = CallerIDTypes.Resolve(int(v))
 
 	return nil
+}
+
+func (c *callerIDReport) GetCallerID() *calls.CallerID {
+	return &calls.CallerID{
+		CallerID:   c.CallerID,
+		IDType:     c.IDType.ID,
+		IDValidity: c.IDValidity.ID,
+	}
 }
 
 type messageReport struct {

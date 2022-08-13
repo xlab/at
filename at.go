@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xlab/at/calls"
 	"github.com/xlab/at/pdu"
 	"github.com/xlab/at/sms"
 )
@@ -60,7 +61,7 @@ type Device struct {
 	cmdPort    *os.File
 	notifyPort *os.File
 
-	incomingCallerIDs chan *callerIDReport
+	incomingCallerIDs chan *calls.CallerID
 	messages          chan *sms.Message
 	ussd              chan Ussd
 	updated           chan struct{}
@@ -70,7 +71,7 @@ type Device struct {
 }
 
 // IncomingCallerID fires when an incoming caller ID was received.
-func (d *Device) IncomingCallerID() <-chan *callerIDReport {
+func (d *Device) IncomingCallerID() <-chan *calls.CallerID {
 	return d.incomingCallerIDs
 }
 
@@ -264,7 +265,9 @@ func (d *Device) handleReport(str string) (err error) {
 		if err = report.Parse(str); err != nil {
 			return
 		}
-		d.incomingCallerIDs <- &report
+
+		callerID := report.GetCallerID()
+		d.incomingCallerIDs <- callerID
 	case Reports.Message:
 		var report messageReport
 		if err = report.Parse(str); err != nil {
@@ -391,7 +394,7 @@ func (d *Device) Init(profile DeviceProfile) error {
 	}
 	d.active = true
 	d.closed = make(chan struct{})
-	d.incomingCallerIDs = make(chan *callerIDReport, 100)
+	d.incomingCallerIDs = make(chan *calls.CallerID, 100)
 	d.messages = make(chan *sms.Message, 100)
 	d.ussd = make(chan Ussd, 100)
 	d.updated = make(chan struct{}, 100)
