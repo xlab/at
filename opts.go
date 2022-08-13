@@ -310,13 +310,13 @@ var UssdResultReporting = struct {
 var reports = stringOpts{
 	{"+CUSD:", "USSD reply"},
 	{"+CMTI:", "Incoming SMS"},
-	{"+CLIP:", "Incoming Caller ID"},
 	{"^RSSI:", "Signal strength"},
 	{"^BOOT:", "Boot handshake"},
 	{"^MODE:", "System mode"},
 	{"^SRVST:", "Service state"},
 	{"^SIMST:", "Sim state"},
 	{"^STIN:", "STIN"},
+	{"+CLIP:", "Incoming Caller ID"},
 }
 
 // Reports represent the possible state reports from a modem.
