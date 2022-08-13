@@ -60,12 +60,18 @@ type Device struct {
 	cmdPort    *os.File
 	notifyPort *os.File
 
-	messages chan *sms.Message
-	ussd     chan Ussd
-	updated  chan struct{}
-	closed   chan struct{}
+	incomingCallerIDs chan *callerIDReport
+	messages          chan *sms.Message
+	ussd              chan Ussd
+	updated           chan struct{}
+	closed            chan struct{}
 
 	active bool
+}
+
+// IncomingCallerID fires when an incoming caller ID was received.
+func (d *Device) IncomingCallerID() <-chan *callerIDReport {
+	return d.incomingCallerIDs
 }
 
 // IncomingSms fires when an SMS was received.
@@ -253,6 +259,12 @@ func (d *Device) handleReport(str string) (err error) {
 	report := Reports.Resolve(str)
 	str = strings.TrimSpace(strings.TrimPrefix(str, report.ID))
 	switch report {
+	case Reports.CallerID:
+		var report callerIDReport
+		if err = report.Parse(str); err != nil {
+			return
+		}
+		d.incomingCallerIDs <- &report
 	case Reports.Message:
 		var report messageReport
 		if err = report.Parse(str); err != nil {
@@ -379,6 +391,7 @@ func (d *Device) Init(profile DeviceProfile) error {
 	}
 	d.active = true
 	d.closed = make(chan struct{})
+	d.incomingCallerIDs = make(chan *callerIDReport, 100)
 	d.messages = make(chan *sms.Message, 100)
 	d.ussd = make(chan Ussd, 100)
 	d.updated = make(chan struct{}, 100)
