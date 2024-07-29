@@ -321,7 +321,7 @@ func (s *Message) decodeStatusReport(data []byte) (n int, err error) {
 
 func (s *Message) encodedUserData() (userData []byte, length byte, err error) {
 	switch s.Encoding {
-	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
+	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2, Encodings.Gsm7Bit_3:
 		userData = pdu.Encode7Bit(s.Text)
 		length = byte(utf8.RuneCountInString(s.Text))
 	case Encodings.UCS2:
@@ -336,7 +336,7 @@ func (s *Message) encodedUserData() (userData []byte, length byte, err error) {
 
 func (s *Message) decodeUserData(data []byte, dataLen byte) (err error) {
 	switch s.Encoding {
-	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2:
+	case Encodings.Gsm7Bit, Encodings.Gsm7Bit_2, Encodings.Gsm7Bit_3:
 		if s.Text, err = pdu.Decode7Bit(data); err != nil {
 			return
 		}
