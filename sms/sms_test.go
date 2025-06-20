@@ -22,6 +22,8 @@ var (
 
 	pduDeliverGsm7   = "07919762020033F1040B919762995696F0000041606291401561066379180E8200"
 	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA066379180E8200"
+	pduSubmitGsm7_EnhancedTpVp = "05915155010009010891515511110000420300000000001e547" +
+		"47a0e9a36a72074780e9a81e6e5f1db4d9e83e86f103b6d2f03"
 	pduDeliverGsm7_2 = "0791551010010201040D91551699296568F80011719022124215293DD4B71C5E26BF" +
 		"41D3E6145476D3E5E573BD0C82BF40B59A2D96CBE564351BCE8603A164319D8CA6ABD540E432482673C172AED82DE502"
 
@@ -70,6 +72,13 @@ var (
 		ServiceCenterAddress: "+79262000331",
 		VP:                   ValidityPeriod(time.Hour * 24 * 4),
 		VPFormat:             ValidityPeriodFormats.Relative,
+	}
+	smsSubmitGsm7_EnhancedTpVp = Message{
+		Text:                 "This SMS has 3 seconds to live",
+		Encoding:             Encodings.Gsm7Bit,
+		Type:                 MessageTypes.Submit,
+		Address:              "+15551111",
+		ServiceCenterAddress: "+15551000",
 	}
 	smsReport = Message{
 		Type:                 MessageTypes.StatusReport,
@@ -174,6 +183,16 @@ func TestSmsSubmitReadFromGsm7(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, n, len(data))
 	assert.Equal(t, smsSubmitGsm7, msg)
+}
+
+func TestSmsSubmitReadFromGsm7_EnhancedTpVp(t *testing.T) {
+	t.Parallel()
+
+	var msg Message
+	data, err := util.Bytes(pduSubmitGsm7_EnhancedTpVp)
+	require.NoError(t, err)
+	_, err = msg.ReadFrom(data)
+	assert.Equal(t, err, ErrNonRelative)
 }
 
 func TestSmsSubmitPduUCS2(t *testing.T) {

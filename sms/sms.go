@@ -272,7 +272,7 @@ func (s *Message) decodeSubmit(data []byte) (n int, err error) {
 	}
 	s.RejectDuplicates = sms.RejectDuplicates
 
-	switch s.VPFormat {
+	switch ValidityPeriodFormat(sms.ValidityPeriodFormat) {
 	case ValidityPeriodFormats.Absolute, ValidityPeriodFormats.Enhanced:
 		return n, ErrNonRelative
 	default:
