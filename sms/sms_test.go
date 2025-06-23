@@ -24,6 +24,8 @@ var (
 	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA066379180E8200"
 	pduSubmitGsm7_EnhancedTpVp = "05915155010009010891515511110000420300000000001e547" +
 		"47a0e9a36a72074780e9a81e6e5f1db4d9e83e86f103b6d2f03"
+	pduSubmitGsm7_EnhancedTpVp2 = "05915155020009000891515522220000010000000000001f54" +
+		"747a0e9a36a7a0f41c640fb3d36490f92d07c940edb4bb4e2fcf1b"
 	pduSubmitGsm7_AbsoluteTpVp = "059151550100190008915155111100001010103295953246cfb" +
 		"a1ce42cc3c3ecf2bc0c32cbd36537790eba87dd74101d9d9e83a6cd29485c36bfe565900c068" +
 		"bb560b1162c0692cd74b59cae960355a9c3554d47ab01"
@@ -92,6 +94,28 @@ var (
 		Type:                 MessageTypes.Submit,
 		Address:              "+15551111",
 		ServiceCenterAddress: "+15551000",
+		VPFormat:             ValidityPeriodFormats.Enhanced,
+		EnhancedVP: EnhancedValidityPeriod{
+			ExtensionBit:      false,
+			SingleShotSm:      true,
+			EnhancedFormat:    EnhancedValidityPeriodFormats.RelativeInteger,
+			RelativeIntegerVP: 3,
+		},
+		MessageReference: 1,
+	}
+	smsSubmitGsm7_EnhancedTpVp2 = Message{
+		Text:                 "This SMS is valid for 2 minutes",
+		Encoding:             Encodings.Gsm7Bit,
+		Type:                 MessageTypes.Submit,
+		Address:              "+15552222",
+		ServiceCenterAddress: "+15552000",
+		VPFormat:             ValidityPeriodFormats.Enhanced,
+		EnhancedVP: EnhancedValidityPeriod{
+			ExtensionBit:   false,
+			SingleShotSm:   false,
+			EnhancedFormat: EnhancedValidityPeriodFormats.Relative,
+			RelativeVP:     0,
+		},
 	}
 	smsReport = Message{
 		Type:                 MessageTypes.StatusReport,
@@ -224,8 +248,22 @@ func TestSmsSubmitReadFromGsm7_EnhancedTpVp(t *testing.T) {
 	var msg Message
 	data, err := util.Bytes(pduSubmitGsm7_EnhancedTpVp)
 	require.NoError(t, err)
-	_, err = msg.ReadFrom(data)
-	assert.Equal(t, err, ErrEnhancedVpfNotSupported)
+	n, err := msg.ReadFrom(data)
+	require.NoError(t, err)
+	assert.Equal(t, n, len(data))
+	assert.Equal(t, smsSubmitGsm7_EnhancedTpVp, msg)
+}
+
+func TestSmsSubmitReadFromGsm7_EnhancedTpVp2(t *testing.T) {
+	t.Parallel()
+
+	var msg Message
+	data, err := util.Bytes(pduSubmitGsm7_EnhancedTpVp2)
+	require.NoError(t, err)
+	n, err := msg.ReadFrom(data)
+	require.NoError(t, err)
+	assert.Equal(t, n, len(data))
+	assert.Equal(t, smsSubmitGsm7_EnhancedTpVp2, msg)
 }
 
 func TestSmsSubmitPduUCS2(t *testing.T) {
@@ -256,6 +294,26 @@ func TestSmsSubmitPduGsm7_AbsoluteTpVp(t *testing.T) {
     n, octets, err := smsSubmitGsm7_AbsoluteTpVp.PDU()
 	require.NoError(t, err)
 	data := asBytes(pduSubmitGsm7_AbsoluteTpVp)
+	assert.Equal(t, len(data) - 6, n)
+	assert.Equal(t, data, octets)
+}
+
+func TestSmsSubmitPduGsm7_EnhancedTpVp(t *testing.T) {
+	t.Parallel()
+
+	n, octets, err := smsSubmitGsm7_EnhancedTpVp.PDU()
+	require.NoError(t, err)
+	data := asBytes(pduSubmitGsm7_EnhancedTpVp)
+	assert.Equal(t, len(data) - 6, n)
+	assert.Equal(t, data, octets)
+}
+
+func TestSmsSubmitPduGsm7_EnhancedTpVp2(t *testing.T) {
+	t.Parallel()
+
+	n, octets, err := smsSubmitGsm7_EnhancedTpVp2.PDU()
+	require.NoError(t, err)
+	data := asBytes(pduSubmitGsm7_EnhancedTpVp2)
 	assert.Equal(t, len(data) - 6, n)
 	assert.Equal(t, data, octets)
 }

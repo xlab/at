@@ -115,6 +115,8 @@ func (s *smsSubmit) FromBytes(octets []byte) (n int, err error) { //nolint:funle
 			return
 		}
 	case ValidityPeriodFormats.Absolute:
+		fallthrough
+	case ValidityPeriodFormats.Enhanced:
 		s.ValidityPeriod = make([]byte, 7)
 		off, err = io.ReadFull(buf, s.ValidityPeriod)
 		n += off
