@@ -26,7 +26,7 @@ var (
 type Message struct {
 	Type                 MessageType
 	Encoding             Encoding
-	VP                   ValidityPeriod
+	VP                   RelativeValidityPeriod
 	VPFormat             ValidityPeriodFormat
 	ServiceCenterTime    Timestamp
 	DischargeTime        Timestamp

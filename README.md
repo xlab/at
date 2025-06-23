@@ -33,7 +33,7 @@ smsSubmitGsm7 := Message{
 	Type:                 MessageTypes.Submit,
 	Address:              "+79261234567",
 	ServiceCenterAddress: "+79262000331",
-	VP:                   ValidityPeriod(time.Hour * 24 * 4),
+	VP:                   RelativeValidityPeriod(time.Hour * 24 * 4),
 	VPFormat:             ValidityPeriodFormats.Relative,
 }
 n, octets, err := smsSubmitGsm7.PDU()

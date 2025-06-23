@@ -61,7 +61,7 @@ var (
 		Type:                 MessageTypes.Submit,
 		Address:              "+79269965690",
 		ServiceCenterAddress: "+79168999100",
-		VP:                   ValidityPeriod(time.Hour * 24 * 4),
+		VP:                   RelativeValidityPeriod(time.Hour * 24 * 4),
 		VPFormat:             ValidityPeriodFormats.Relative,
 	}
 	smsSubmitGsm7 = Message{
@@ -70,7 +70,7 @@ var (
 		Type:                 MessageTypes.Submit,
 		Address:              "+79269965690",
 		ServiceCenterAddress: "+79262000331",
-		VP:                   ValidityPeriod(time.Hour * 24 * 4),
+		VP:                   RelativeValidityPeriod(time.Hour * 24 * 4),
 		VPFormat:             ValidityPeriodFormats.Relative,
 	}
 	smsSubmitGsm7_EnhancedTpVp = Message{
