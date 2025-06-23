@@ -18,7 +18,7 @@ type smsSubmit struct {
 	DestinationAddress []byte
 	ProtocolIdentifier byte
 	DataCodingScheme   byte
-	ValidityPeriod     byte
+	ValidityPeriod     []byte
 	UserDataLength     byte
 	UserData           []byte
 }
@@ -45,7 +45,7 @@ func (s *smsSubmit) Bytes() []byte {
 	buf.WriteByte(s.ProtocolIdentifier)
 	buf.WriteByte(s.DataCodingScheme)
 	if ValidityPeriodFormat(s.ValidityPeriodFormat) != ValidityPeriodFormats.FieldNotPresent {
-		buf.WriteByte(s.ValidityPeriod)
+		buf.Write(s.ValidityPeriod)
 	}
 	buf.WriteByte(s.UserDataLength)
 	buf.Write(s.UserData)
@@ -106,8 +106,9 @@ func (s *smsSubmit) FromBytes(octets []byte) (n int, err error) { //nolint:funle
 		return
 	}
 	if ValidityPeriodFormat(s.ValidityPeriodFormat) != ValidityPeriodFormats.FieldNotPresent {
-		s.ValidityPeriod, err = buf.ReadByte()
-		n++
+		s.ValidityPeriod = make([]byte, 1)
+		off, err = io.ReadFull(buf, s.ValidityPeriod)
+		n += off
 		if err != nil {
 			return
 		}

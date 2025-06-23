@@ -152,7 +152,7 @@ func (s *Message) encodeSubmit(buf *bytes.Buffer) (n int, err error) {
 
 	switch s.VPFormat {
 	case ValidityPeriodFormats.Relative:
-		sms.ValidityPeriod = byte(s.VP.Octet())
+		sms.ValidityPeriod = []byte{s.VP.Octet()}
 	case ValidityPeriodFormats.Absolute, ValidityPeriodFormats.Enhanced:
 		return 0, ErrNonRelative
 	}
@@ -287,7 +287,7 @@ func (s *Message) decodeSubmit(data []byte) (n int, err error) {
 	s.Encoding = Encoding(sms.DataCodingScheme)
 
 	if s.VPFormat != ValidityPeriodFormats.FieldNotPresent {
-		s.VP.ReadFrom(sms.ValidityPeriod)
+		s.VP.ReadFrom(sms.ValidityPeriod[0])
 	}
 	err = s.decodeUserData(sms.UserData, sms.UserDataLength)
 	return n, err
