@@ -16,6 +16,9 @@ var ValidityPeriodFormats = struct {
 	0x00, 0x02, 0x01, 0x03,
 }
 
+// Absolute validity period (3GPP TS 23.040 9.2.3.12.2)
+type AbsoluteValidityPeriod = Timestamp
+
 // Relative validity period (3GPP TS 23.040 9.2.3.12.1)
 type RelativeValidityPeriod time.Duration
 

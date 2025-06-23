@@ -24,6 +24,10 @@ var (
 	pduSubmitGsm7    = "07919762020033F111000B919762995696F00000AA066379180E8200"
 	pduSubmitGsm7_EnhancedTpVp = "05915155010009010891515511110000420300000000001e547" +
 		"47a0e9a36a72074780e9a81e6e5f1db4d9e83e86f103b6d2f03"
+	pduSubmitGsm7_AbsoluteTpVp = "059151550100190008915155111100001010103295953246cfb" +
+		"a1ce42cc3c3ecf2bc0c32cbd36537790eba87dd74101d9d9e83a6cd29485c36bfe565900c068" +
+		"bb560b1162c0692cd74b59cae960355a9c3554d47ab01"
+
 	pduDeliverGsm7_2 = "0791551010010201040D91551699296568F80011719022124215293DD4B71C5E26BF" +
 		"41D3E6145476D3E5E573BD0C82BF40B59A2D96CBE564351BCE8603A164319D8CA6ABD540E432482673C172AED82DE502"
 
@@ -73,6 +77,15 @@ var (
 		VP:                   RelativeValidityPeriod(time.Hour * 24 * 4),
 		VPFormat:             ValidityPeriodFormats.Relative,
 	}
+	smsSubmitGsm7_AbsoluteTpVp = Message{
+		Text:                 "Our Nepalese friends want this SMS before 2001-01-01 23:59:59 UTC+5:45",
+		Encoding:             Encodings.Gsm7Bit,
+		Type:                 MessageTypes.Submit,
+		Address:              "+15551111",
+		ServiceCenterAddress: "+15551000",
+		AbsoluteVP:           AbsoluteValidityPeriod(parseTimestamp("2001-01-01T23:59:59+05:45")),
+		VPFormat:             ValidityPeriodFormats.Absolute,
+	}
 	smsSubmitGsm7_EnhancedTpVp = Message{
 		Text:                 "This SMS has 3 seconds to live",
 		Encoding:             Encodings.Gsm7Bit,
@@ -99,6 +112,14 @@ func parseTimestamp(timetamp string) Timestamp {
 		panic(err)
 	}
 	return Timestamp(date)
+}
+
+func asBytes(str string) []byte {
+	bytes, err := util.Bytes(str)
+	if err != nil {
+		panic(err)
+	}
+	return bytes
 }
 
 func TestSmsDeliverReadFromUCS2(t *testing.T) {
@@ -185,6 +206,18 @@ func TestSmsSubmitReadFromGsm7(t *testing.T) {
 	assert.Equal(t, smsSubmitGsm7, msg)
 }
 
+func TestSmsSubmitReadFromGsm7_AbsoluteTpVp(t *testing.T) {
+	t.Parallel()
+
+	var msg Message
+	data, err := util.Bytes(pduSubmitGsm7_AbsoluteTpVp)
+	require.NoError(t, err)
+	n, err := msg.ReadFrom(data)
+	require.NoError(t, err)
+	assert.Equal(t, n, len(data))
+	assert.Equal(t, smsSubmitGsm7_AbsoluteTpVp, msg)
+}
+
 func TestSmsSubmitReadFromGsm7_EnhancedTpVp(t *testing.T) {
 	t.Parallel()
 
@@ -192,7 +225,7 @@ func TestSmsSubmitReadFromGsm7_EnhancedTpVp(t *testing.T) {
 	data, err := util.Bytes(pduSubmitGsm7_EnhancedTpVp)
 	require.NoError(t, err)
 	_, err = msg.ReadFrom(data)
-	assert.Equal(t, err, ErrNonRelative)
+	assert.Equal(t, err, ErrEnhancedVpfNotSupported)
 }
 
 func TestSmsSubmitPduUCS2(t *testing.T) {
@@ -214,6 +247,16 @@ func TestSmsSubmitPduGsm7(t *testing.T) {
 	assert.Equal(t, len(pduSubmitGsm7)/2-8, n)
 	data, err := util.Bytes(pduSubmitGsm7)
 	require.NoError(t, err)
+	assert.Equal(t, data, octets)
+}
+
+func TestSmsSubmitPduGsm7_AbsoluteTpVp(t *testing.T) {
+	t.Parallel()
+
+    n, octets, err := smsSubmitGsm7_AbsoluteTpVp.PDU()
+	require.NoError(t, err)
+	data := asBytes(pduSubmitGsm7_AbsoluteTpVp)
+	assert.Equal(t, len(data) - 6, n)
 	assert.Equal(t, data, octets)
 }
 
