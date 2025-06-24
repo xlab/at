@@ -15,7 +15,9 @@ var (
 	ErrUnknownEncoding               = errors.New("sms: unsupported encoding")
 	ErrUnknownMessageType            = errors.New("sms: unsupported message type")
 	ErrIncorrectSize                 = errors.New("sms: decoded incorrect size of field")
-	ErrNonRelative                   = errors.New("sms: non-relative validity period support is not implemented yet")
+	ErrLongEnhancedVpNotSupported    = errors.New("sms: extended functionality indicator for enhanced validity period is not supported")
+	ErrUnknownEnhancedVpReservedBits = errors.New("sms: unknown reserved bits for enhanced validity period were set")
+	ErrUnknownVpf                    = errors.New("sms: unknown validity period format")
 	ErrIncorrectUserDataHeaderLength = errors.New("sms: incorrect user data header length ")
 	ErrUnsupportedTypeOfNumber       = errors.New("sms: unsupported type-of-number")
 )
@@ -26,7 +28,9 @@ var (
 type Message struct {
 	Type                 MessageType
 	Encoding             Encoding
-	VP                   ValidityPeriod
+	VP                   RelativeValidityPeriod
+	AbsoluteVP           AbsoluteValidityPeriod
+	EnhancedVP           EnhancedValidityPeriod
 	VPFormat             ValidityPeriodFormat
 	ServiceCenterTime    Timestamp
 	DischargeTime        Timestamp
@@ -151,10 +155,17 @@ func (s *Message) encodeSubmit(buf *bytes.Buffer) (n int, err error) {
 	sms.DataCodingScheme = byte(s.Encoding)
 
 	switch s.VPFormat {
+	case ValidityPeriodFormats.FieldNotPresent:
+		sms.ValidityPeriod = make([]byte, 0)
 	case ValidityPeriodFormats.Relative:
-		sms.ValidityPeriod = byte(s.VP.Octet())
-	case ValidityPeriodFormats.Absolute, ValidityPeriodFormats.Enhanced:
-		return 0, ErrNonRelative
+		sms.ValidityPeriod = []byte{s.VP.Octet()}
+	case ValidityPeriodFormats.Absolute:
+		sms.ValidityPeriod = s.AbsoluteVP.PDU()
+	case ValidityPeriodFormats.Enhanced:
+		sms.ValidityPeriod, err = s.EnhancedVP.PDU()
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	sms.UserData, sms.UserDataLength, err = s.encodedUserData()
@@ -272,11 +283,20 @@ func (s *Message) decodeSubmit(data []byte) (n int, err error) {
 	}
 	s.RejectDuplicates = sms.RejectDuplicates
 
-	switch ValidityPeriodFormat(sms.ValidityPeriodFormat) {
-	case ValidityPeriodFormats.Absolute, ValidityPeriodFormats.Enhanced:
-		return n, ErrNonRelative
+	s.VPFormat = ValidityPeriodFormat(sms.ValidityPeriodFormat)
+	switch s.VPFormat {
+	case ValidityPeriodFormats.FieldNotPresent:
+	case ValidityPeriodFormats.Absolute:
+		s.AbsoluteVP.ReadFrom(sms.ValidityPeriod)
+	case ValidityPeriodFormats.Relative:
+		s.VP.ReadFrom(sms.ValidityPeriod[0])
+	case ValidityPeriodFormats.Enhanced:
+		err = s.EnhancedVP.ReadFrom(sms.ValidityPeriod)
+		if err != nil {
+			return n, err
+		}
 	default:
-		s.VPFormat = ValidityPeriodFormat(sms.ValidityPeriodFormat)
+		return n, ErrUnknownVpf
 	}
 
 	s.MessageReference = sms.MessageReference
@@ -286,9 +306,6 @@ func (s *Message) decodeSubmit(data []byte) (n int, err error) {
 	s.Address.ReadFrom(sms.DestinationAddress[1:])
 	s.Encoding = Encoding(sms.DataCodingScheme)
 
-	if s.VPFormat != ValidityPeriodFormats.FieldNotPresent {
-		s.VP.ReadFrom(sms.ValidityPeriod)
-	}
 	err = s.decodeUserData(sms.UserData, sms.UserDataLength)
 	return n, err
 }

@@ -438,7 +438,7 @@ func (d *Device) SendSMS(text string, address sms.PhoneNumber) (err error) {
 		Encoding: sms.Encodings.Gsm7Bit,
 		Address:  address,
 		VPFormat: sms.ValidityPeriodFormats.Relative,
-		VP:       sms.ValidityPeriod(24 * time.Hour * 4),
+		VP:       sms.RelativeValidityPeriod(24 * time.Hour * 4),
 	}
 
 	if !pdu.Is7BitEncodable(text) {

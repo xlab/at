@@ -18,7 +18,7 @@ type smsSubmit struct {
 	DestinationAddress []byte
 	ProtocolIdentifier byte
 	DataCodingScheme   byte
-	ValidityPeriod     byte
+	ValidityPeriod     []byte
 	UserDataLength     byte
 	UserData           []byte
 }
@@ -44,9 +44,7 @@ func (s *smsSubmit) Bytes() []byte {
 	buf.Write(s.DestinationAddress)
 	buf.WriteByte(s.ProtocolIdentifier)
 	buf.WriteByte(s.DataCodingScheme)
-	if ValidityPeriodFormat(s.ValidityPeriodFormat) != ValidityPeriodFormats.FieldNotPresent {
-		buf.WriteByte(s.ValidityPeriod)
-	}
+	buf.Write(s.ValidityPeriod)
 	buf.WriteByte(s.UserDataLength)
 	buf.Write(s.UserData)
 	return buf.Bytes()
@@ -105,13 +103,30 @@ func (s *smsSubmit) FromBytes(octets []byte) (n int, err error) { //nolint:funle
 	if err != nil {
 		return
 	}
-	if ValidityPeriodFormat(s.ValidityPeriodFormat) != ValidityPeriodFormats.FieldNotPresent {
-		s.ValidityPeriod, err = buf.ReadByte()
-		n++
+
+	switch ValidityPeriodFormat(s.ValidityPeriodFormat) {
+	case ValidityPeriodFormats.FieldNotPresent:
+		s.ValidityPeriod = make([]byte, 0)
+	case ValidityPeriodFormats.Relative:
+		s.ValidityPeriod = make([]byte, 1)
+		off, err = io.ReadFull(buf, s.ValidityPeriod)
+		n += off
 		if err != nil {
 			return
 		}
+	case ValidityPeriodFormats.Absolute:
+		fallthrough
+	case ValidityPeriodFormats.Enhanced:
+		s.ValidityPeriod = make([]byte, 7)
+		off, err = io.ReadFull(buf, s.ValidityPeriod)
+		n += off
+		if err != nil {
+			return
+		}
+	default:
+		return
 	}
+
 	s.UserDataLength, err = buf.ReadByte()
 	n++
 	if err != nil {
