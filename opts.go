@@ -378,7 +378,7 @@ var DeleteOptions = struct {
 	AllNotUnread     Opt
 	All              Opt
 }{
-	func(id int) Opt { return resultReporting.Resolve(id) },
+	func(id int) Opt { return delOpts.Resolve(id) },
 
 	delOpts[0], delOpts[1], delOpts[2], delOpts[3], delOpts[4],
 }
@@ -401,7 +401,7 @@ var MessageFlags = struct {
 	Sent   Opt
 	Any    Opt
 }{
-	func(id int) Opt { return resultReporting.Resolve(id) },
+	func(id int) Opt { return msgFlags.Resolve(id) },
 
 	msgFlags[0], msgFlags[1], msgFlags[2], msgFlags[3], msgFlags[4],
 }
