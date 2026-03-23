@@ -44,14 +44,14 @@ func DeviceE173() DeviceProfile {
 // DefaultProfile is a reference implementation that could be embedded
 // in any other custom implementation of the DeviceProfile interface.
 type DefaultProfile struct {
-	dev *Device
+	Dev *Device
 	DeviceProfile
 }
 
 // Init invokes a set of methods that will make the initial setup of the modem.
 func (p *DefaultProfile) Init(d *Device) (err error) {
-	p.dev = d
-	p.dev.Send(NoopCmd) // kinda flush
+	p.Dev = d
+	p.Dev.Send(NoopCmd) // kinda flush
 	if err = p.COPS(true, true); err != nil {
 		return fmt.Errorf("at init: unable to adjust the format of operator's name: %w", err)
 	}
@@ -59,7 +59,7 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 	if info, err = p.SYSINFO(); err != nil {
 		return fmt.Errorf("at init: unable to read system info: %w", err)
 	}
-	p.dev.State = &DeviceState{
+	p.Dev.State = &DeviceState{
 		ServiceState:  info.ServiceState,
 		ServiceDomain: info.ServiceDomain,
 		RoamingState:  info.RoamingState,
@@ -67,13 +67,13 @@ func (p *DefaultProfile) Init(d *Device) (err error) {
 		SystemSubmode: info.SystemSubmode,
 		SimState:      info.SimState,
 	}
-	if p.dev.State.OperatorName, err = p.OperatorName(); err != nil {
+	if p.Dev.State.OperatorName, err = p.OperatorName(); err != nil {
 		return fmt.Errorf("at init: unable to read operator's name: %w", err)
 	}
-	if p.dev.State.ModelName, err = p.ModelName(); err != nil {
+	if p.Dev.State.ModelName, err = p.ModelName(); err != nil {
 		return fmt.Errorf("at init: unable to read modem's model name: %w", err)
 	}
-	if p.dev.State.IMEI, err = p.IMEI(); err != nil {
+	if p.Dev.State.IMEI, err = p.IMEI(); err != nil {
 		return fmt.Errorf("at init: unable to read modem's IMEI code: %w", err)
 	}
 	if err = p.CMGF(false); err != nil {
@@ -106,7 +106,7 @@ func (p *DefaultProfile) FetchInbox() error {
 		if err := p.CMGD(slots[i].Index, DeleteOptions.Index); err != nil {
 			return fmt.Errorf("error while cleaning message inbox: %w", err)
 		}
-		p.dev.messages <- &msg
+		p.Dev.messages <- &msg
 	}
 	return nil
 }
@@ -234,7 +234,7 @@ func (r *ussdReport) Parse(str string) (err error) {
 // CUSD sends AT+CUSD with the given parameters to the device. This will invoke an USSD request.
 func (p *DefaultProfile) CUSD(reporting Opt, octets []byte, enc Encoding) (err error) {
 	req := fmt.Sprintf(`AT+CUSD=%d,%02X,%d`, reporting.ID, octets, enc)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -297,7 +297,7 @@ func (m *messageReport) Parse(str string) (err error) {
 // CMGR sends AT+CMGR with the given index to the device and returns the message contents.
 func (p *DefaultProfile) CMGR(index uint16) (octets []byte, err error) {
 	req := fmt.Sprintf(`AT+CMGR=%d`, index)
-	reply, err := p.dev.Send(req)
+	reply, err := p.Dev.Send(req)
 	if err != nil {
 		return
 	}
@@ -313,7 +313,7 @@ func (p *DefaultProfile) CMGR(index uint16) (octets []byte, err error) {
 // in which messages will be deleted. The default mode is to delete by index.
 func (p *DefaultProfile) CMGD(index uint16, option Opt) (err error) {
 	req := fmt.Sprintf(`AT+CMGD=%d,%d`, index, option.ID)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -321,7 +321,7 @@ func (p *DefaultProfile) CMGD(index uint16, option Opt) (err error) {
 // the storage type for different kinds of messages and message notifications.
 func (p *DefaultProfile) CPMS(mem1 StringOpt, mem2 StringOpt, mem3 StringOpt) (err error) {
 	req := fmt.Sprintf(`AT+CPMS="%s","%s","%s"`, mem1.ID, mem2.ID, mem3.ID)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -329,7 +329,7 @@ func (p *DefaultProfile) CPMS(mem1 StringOpt, mem2 StringOpt, mem3 StringOpt) (e
 // It's used to adjust the settings of the new message arrival notifications.
 func (p *DefaultProfile) CNMI(mode, mt, bm, ds, bfr int) (err error) {
 	req := fmt.Sprintf(`AT+CNMI=%d,%d,%d,%d,%d`, mode, mt, bm, ds, bfr)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -343,7 +343,7 @@ func (p *DefaultProfile) CMGF(text bool) (err error) {
 		flag = 1
 	}
 	req := fmt.Sprintf(`AT+CMGF=%d`, flag)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -355,7 +355,7 @@ func (p *DefaultProfile) CLIP(text bool) (err error) {
 		flag = 1
 	}
 	req := fmt.Sprintf(`AT+CLIP=%d`, flag)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -363,7 +363,7 @@ func (p *DefaultProfile) CLIP(text bool) (err error) {
 // an active incoming call
 func (p *DefaultProfile) CHUP() (err error) {
 	req := "ATH+CHUP"
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -377,7 +377,7 @@ type MessageSlot struct {
 // list of supported filters.
 func (p *DefaultProfile) CMGL(flag Opt) (result []MessageSlot, err error) {
 	req := fmt.Sprintf(`AT+CMGL=%d`, flag.ID)
-	reply, err := p.dev.Send(req)
+	reply, err := p.Dev.Send(req)
 	if err != nil {
 		return
 	}
@@ -413,7 +413,7 @@ func (p *DefaultProfile) CMGL(flag Opt) (result []MessageSlot, err error) {
 // the handshaking procedure.
 func (p *DefaultProfile) BOOT(token uint64) (err error) {
 	req := fmt.Sprintf(`AT^BOOT=%d,0`, token)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -423,7 +423,7 @@ func (p *DefaultProfile) BOOT(token uint64) (err error) {
 func (p *DefaultProfile) CMGS(length int, octets []byte) (byte, error) {
 	part1 := fmt.Sprintf("AT+CMGS=%d", length)
 	part2 := fmt.Sprintf("%02X", octets)
-	reply, err := p.dev.sendInteractive(part1, part2, byte('>'))
+	reply, err := p.Dev.sendInteractive(part1, part2, byte('>'))
 
 	if err != nil {
 		return 0, err
@@ -456,7 +456,7 @@ func (p *DefaultProfile) SYSCFG(roaming, cellular bool) (err error) {
 		cell = 1
 	}
 	req := fmt.Sprintf(`AT^SYSCFG=2,2,3FFFFFFF,%d,%d`, roam, cell)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
@@ -511,7 +511,7 @@ func (s *SystemInfoReport) Parse(str string) (err error) {
 
 // SYSINFO sends AT^SYSINFO to the device and parses the output.
 func (p *DefaultProfile) SYSINFO() (info *SystemInfoReport, err error) {
-	reply, err := p.dev.Send(`AT^SYSINFO`)
+	reply, err := p.Dev.Send(`AT^SYSINFO`)
 	if err != nil {
 		return nil, err
 	}
@@ -531,13 +531,13 @@ func (p *DefaultProfile) COPS(auto bool, text bool) (err error) {
 		t = 2
 	}
 	req := fmt.Sprintf(`AT+COPS=%d,%d`, a, t)
-	_, err = p.dev.Send(req)
+	_, err = p.Dev.Send(req)
 	return
 }
 
 // OperatorName sends AT+COPS? to the device and gets the operator's name.
 func (p *DefaultProfile) OperatorName() (str string, err error) {
-	result, err := p.dev.Send(`AT+COPS?`)
+	result, err := p.Dev.Send(`AT+COPS?`)
 	fields := strings.Split(strings.TrimPrefix(result, `+COPS: `), ",")
 	if len(fields) < 4 {
 		err = ErrParseReport
@@ -549,12 +549,12 @@ func (p *DefaultProfile) OperatorName() (str string, err error) {
 
 // ModelName sends AT+GMM to the device and gets the modem's model name.
 func (p *DefaultProfile) ModelName() (str string, err error) {
-	str, err = p.dev.Send(`AT+GMM`)
+	str, err = p.Dev.Send(`AT+GMM`)
 	return
 }
 
 // IMEI sends AT+GSN to the device and gets the modem's IMEI code.
 func (p *DefaultProfile) IMEI() (str string, err error) {
-	str, err = p.dev.Send(`AT+GSN`)
+	str, err = p.Dev.Send(`AT+GSN`)
 	return
 }
