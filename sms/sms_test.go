@@ -30,6 +30,8 @@ var (
 		"a1ce42cc3c3ecf2bc0c32cbd36537790eba87dd74101d9d9e83a6cd29485c36bfe565900c068" +
 		"bb560b1162c0692cd74b59cae960355a9c3554d47ab01"
 
+	pduSubmit8Bit = "07919762020033F111000B919762995696F00004AA0700017F80FFC32A"
+
 	pduDeliverGsm7_2 = "0791551010010201040D91551699296568F80011719022124215293DD4B71C5E26BF" +
 		"41D3E6145476D3E5E573BD0C82BF40B59A2D96CBE564351BCE8603A164319D8CA6ABD540E432482673C172AED82DE502"
 
@@ -116,6 +118,16 @@ var (
 			EnhancedFormat: EnhancedValidityPeriodFormats.Relative,
 			RelativeVP:     0,
 		},
+	}
+	smsSubmit8Bit = Message{
+		// Text with bytes that are not valid gsm 7-bit or UCS encoding.
+		Text:                 string([]byte{0x00, 0x01, 0x7F, 0x80, 0xFF, 0xC3, 0x2A}),
+		Encoding:             Encodings.Data8Bit,
+		Type:                 MessageTypes.Submit,
+		Address:              "+79269965690",
+		ServiceCenterAddress: "+79262000331",
+		VP:                   RelativeValidityPeriod(time.Hour * 24 * 4),
+		VPFormat:             ValidityPeriodFormats.Relative,
 	}
 	smsReport = Message{
 		Type:                 MessageTypes.StatusReport,
@@ -266,6 +278,18 @@ func TestSmsSubmitReadFromGsm7_EnhancedTpVp2(t *testing.T) {
 	assert.Equal(t, smsSubmitGsm7_EnhancedTpVp2, msg)
 }
 
+func TestSmsSubmitReadFrom8Bit(t *testing.T) {
+	t.Parallel()
+
+	var msg Message
+	data, err := util.Bytes(pduSubmit8Bit)
+	require.NoError(t, err)
+	n, err := msg.ReadFrom(data)
+	require.NoError(t, err)
+	assert.Equal(t, n, len(data))
+	assert.Equal(t, smsSubmit8Bit, msg)
+}
+
 func TestSmsSubmitPduUCS2(t *testing.T) {
 	t.Parallel()
 
@@ -315,6 +339,16 @@ func TestSmsSubmitPduGsm7_EnhancedTpVp2(t *testing.T) {
 	require.NoError(t, err)
 	data := asBytes(pduSubmitGsm7_EnhancedTpVp2)
 	assert.Equal(t, len(data) - 6, n)
+	assert.Equal(t, data, octets)
+}
+
+func TestSmsSubmitPdu8Bit(t *testing.T) {
+	t.Parallel()
+
+	n, octets, err := smsSubmit8Bit.PDU()
+	require.NoError(t, err)
+	data := asBytes(pduSubmit8Bit)
+	assert.Equal(t, len(octets)-8, n)
 	assert.Equal(t, data, octets)
 }
 
