@@ -344,6 +344,9 @@ func (s *Message) encodedUserData() (userData []byte, length byte, err error) {
 	case Encodings.UCS2:
 		userData = pdu.EncodeUcs2(s.Text)
 		length = byte(len(userData))
+	case Encodings.Data8Bit:
+		userData = []byte(s.Text)
+		length = byte(len(userData))
 	default:
 		err = ErrUnknownEncoding
 	}
@@ -360,6 +363,11 @@ func (s *Message) decodeUserData(data []byte, dataLen byte) (err error) {
 		s.Text = cutStr(s.Text, int(dataLen))
 	case Encodings.UCS2:
 		s.Text, err = pdu.DecodeUcs2(data, s.UserDataStartsWithHeader)
+	case Encodings.Data8Bit:
+		if int(dataLen) > len(data) {
+			return ErrIncorrectSize
+		}
+		s.Text = string(data[:dataLen])
 	default:
 		return ErrUnknownEncoding
 	}

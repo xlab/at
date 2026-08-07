@@ -9,6 +9,7 @@ var Encodings = struct {
 	UCS2      Encoding
 	Gsm7Bit_2 Encoding
 	Gsm7Bit_3 Encoding
+	Data8Bit  Encoding
 }{
-	0x00, 0x08, 0x11, 0x01,
+	0x00, 0x08, 0x11, 0x01, 0x04,
 }
